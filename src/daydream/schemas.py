@@ -45,7 +45,35 @@ CONSTELLATION_REQUIRED = {
     "evidence_network",
     "mismatch_notes",
 }
+OPPONENT_REQUIRED = {
+    "run_id",
+    "target_type",
+    "target_id",
+    "objections",
+    "strongest_objection",
+    "recommendation",
+}
+ADJUDICATION_REQUIRED = {
+    "run_id",
+    "target_type",
+    "target_id",
+    "verdict",
+    "proponent_summary",
+    "opponent_summary",
+    "hard_reject_reasons",
+    "rationale",
+}
+MESH_REQUIRED = {
+    "run_id",
+    "cluster_id",
+    "systemic_archetype",
+    "participating_doc_ids",
+    "hyperedges",
+    "evidence_mesh",
+    "mismatch_notes",
+}
 VALID_VERDICTS = {"accept", "accepted", "reject", "rejected", "near_miss", "borderline"}
+ADVERSARIAL_RECOMMENDATIONS = {"reject", "near_miss", "pass"}
 
 
 def _missing(payload: dict[str, Any], required: set[str]) -> list[str]:
@@ -117,6 +145,40 @@ def validate_constellation_report(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("evidence_network must include at least three evidence links")
     if not isinstance(payload.get("isomorphism_network"), dict) or not payload["isomorphism_network"]:
         raise ValueError("isomorphism_network must be a non-empty object")
+    return payload
+
+
+def validate_opponent_report(payload: dict[str, Any]) -> dict[str, Any]:
+    missing = _missing(payload, OPPONENT_REQUIRED)
+    if missing:
+        raise ValueError(f"Opponent report missing required fields: {', '.join(missing)}")
+    _require_min_list(payload, "objections", 1)
+    if str(payload["recommendation"]).lower() not in ADVERSARIAL_RECOMMENDATIONS:
+        raise ValueError(f"Unsupported opponent recommendation: {payload['recommendation']}")
+    return payload
+
+
+def validate_adjudication_report(payload: dict[str, Any]) -> dict[str, Any]:
+    missing = _missing(payload, ADJUDICATION_REQUIRED)
+    if missing:
+        raise ValueError(f"Adjudication report missing required fields: {', '.join(missing)}")
+    verdict = str(payload["verdict"]).lower()
+    if verdict not in VALID_VERDICTS:
+        raise ValueError(f"Unsupported adjudication verdict: {payload['verdict']}")
+    if not isinstance(payload.get("hard_reject_reasons"), list):
+        raise ValueError("hard_reject_reasons must be a list")
+    if verdict in {"accept", "accepted"} and payload["hard_reject_reasons"]:
+        raise ValueError("accepted adjudication cannot include hard_reject_reasons")
+    return payload
+
+
+def validate_mesh_report(payload: dict[str, Any]) -> dict[str, Any]:
+    missing = _missing(payload, MESH_REQUIRED)
+    if missing:
+        raise ValueError(f"Mesh report missing required fields: {', '.join(missing)}")
+    _require_min_list(payload, "participating_doc_ids", 3)
+    _require_min_list(payload, "hyperedges", 1)
+    _require_min_list(payload, "evidence_mesh", 3)
     return payload
 
 

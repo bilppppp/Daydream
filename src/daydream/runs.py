@@ -8,6 +8,7 @@ from typing import Any
 from .fs import ensure_dir, read_json, write_json
 
 STRATEGIES = ("random-collision", "tag-bridge", "temporal-bridge")
+SPECIAL_RUN_MODES = {"dream-field"}
 
 
 def runs_dir(root: Path) -> Path:
@@ -34,7 +35,7 @@ def resolve_run_dir(root: Path, run: str) -> Path:
 def start_run(root: Path, strategy: str = "auto") -> dict[str, Any]:
     ensure_dir(runs_dir(root))
     selected = choose_strategy(root) if strategy == "auto" else strategy
-    if selected not in STRATEGIES:
+    if selected not in STRATEGIES and selected not in SPECIAL_RUN_MODES:
         raise ValueError(f"Unknown strategy: {selected}")
 
     created_at = datetime.now().astimezone().isoformat(timespec="seconds")

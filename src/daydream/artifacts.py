@@ -8,8 +8,11 @@ from .runs import resolve_run_dir, update_manifest
 from .schemas import (
     normalize_verdict,
     validate_card,
+    validate_adjudication_report,
     validate_constellation_report,
     validate_critic_report,
+    validate_mesh_report,
+    validate_opponent_report,
     validate_pair_report,
 )
 
@@ -64,6 +67,47 @@ def save_constellation_report(root: Path, run: str, input_path: Path) -> dict[st
     write_json(out, payload)
     update_manifest(root, run, artifacts={"constellation_report": "constellation_report.json"})
     return {"saved": str(out)}
+
+
+def save_opponent_report(root: Path, run: str, input_path: Path) -> dict[str, Any]:
+    payload = validate_opponent_report(read_json(input_path))
+    run_path = resolve_run_dir(root, run)
+    out = run_path / "opponent_reports.jsonl"
+    append_jsonl(out, payload)
+    update_manifest(root, run, artifacts={"opponent_reports": "opponent_reports.jsonl"})
+    return {"saved": str(out)}
+
+
+def save_adjudication_report(root: Path, run: str, input_path: Path) -> dict[str, Any]:
+    payload = validate_adjudication_report(read_json(input_path))
+    run_path = resolve_run_dir(root, run)
+    out = run_path / "adjudication_reports.jsonl"
+    append_jsonl(out, payload)
+    update_manifest(root, run, artifacts={"adjudication_reports": "adjudication_reports.jsonl"})
+    return {"saved": str(out), "verdict": normalize_verdict(str(payload["verdict"]))}
+
+
+def save_mesh_report(root: Path, run: str, input_path: Path) -> dict[str, Any]:
+    payload = validate_mesh_report(read_json(input_path))
+    run_path = resolve_run_dir(root, run)
+    out = run_path / "mesh_report.json"
+    write_json(out, payload)
+    update_manifest(root, run, artifacts={"mesh_report": "mesh_report.json"})
+    return {"saved": str(out)}
+
+
+def save_mesh_draft(root: Path, run: str, title: str, input_value: str | Path) -> dict[str, Any]:
+    run_path = resolve_run_dir(root, run)
+    if not _has_accepted_adjudication(run_path / "adjudication_reports.jsonl"):
+        raise ValueError("Cannot save mesh draft before an accepted adjudication exists")
+    content = read_text_or_literal(input_value)
+    out = run_path / "mesh_draft.md"
+    out.write_text(content, encoding="utf-8")
+    draft_path = root / "drafts" / f"{slugify(title)}.md"
+    draft_path.parent.mkdir(parents=True, exist_ok=True)
+    draft_path.write_text(content, encoding="utf-8")
+    update_manifest(root, run, status="accepted", artifacts={"mesh_draft": "mesh_draft.md", "mesh_draft_copy": str(draft_path)})
+    return {"saved": str(out), "draft": str(draft_path)}
 
 
 def save_draft(root: Path, run: str, title: str, input_value: str | Path) -> dict[str, Any]:
@@ -131,3 +175,17 @@ def _json_line(payload: dict[str, Any], pretty: bool = False) -> str:
     if pretty:
         return json.dumps(payload, ensure_ascii=False, indent=2)
     return json.dumps(payload, ensure_ascii=False, sort_keys=True)
+
+
+def _has_accepted_adjudication(path: Path) -> bool:
+    if not path.exists():
+        return False
+    import json
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        payload = json.loads(line)
+        if normalize_verdict(str(payload.get("verdict", ""))) == "accepted":
+            return True
+    return False

@@ -128,50 +128,111 @@ Return strict JSON only.
 
 Build this only after at least one pairwise resonance has passed hard gates. A constellation must include one seed document and at least two additional documents from different surface domains. The output must explain the epistemic nexus that unifies the cluster, list pairwise limits, and include an evidence network with exact spans from at least three documents.
 """,
+    "devil_advocate.md": """# Devil's Advocate
+
+Return strict JSON only.
+
+Act as the opponent in a red-blue review. Your job is to attack a proposed resonance edge or cluster.
+
+Required JSON fields:
+
+- `run_id`
+- `target_type`
+- `target_id`
+- `objections`
+- `strongest_objection`
+- `recommendation`
+
+Rules:
+
+- Look for lexical traps, causal-arrow reversals, missing functional roles, forced abstraction labels, same-domain summaries, cliche metaphors, and archived near-miss repetition.
+- Include at least one concrete objection.
+- Use `recommendation: reject`, `near_miss`, or `pass`.
+- Do not write the final verdict. The adjudicator decides.
+""",
+    "adjudicator.md": """# Adjudicator
+
+Return strict JSON only.
+
+Judge a resonance edge or cluster after reading the proponent case and devil's advocate report.
+
+Required JSON fields:
+
+- `run_id`
+- `target_type`
+- `target_id`
+- `verdict`
+- `proponent_summary`
+- `opponent_summary`
+- `hard_reject_reasons`
+- `rationale`
+
+Rules:
+
+- `verdict` must be `accept`, `reject`, or `near_miss`.
+- Hard reject if the opponent proves causal reversal, unsupported evidence, or missing core roles.
+- An accepted adjudication cannot include hard reject reasons.
+- Prefer a precise near_miss over a polished but weak accept.
+""",
+    "mesh_draft.md": """# Mesh Draft
+
+Write a Markdown draft only after an accepted adjudication exists.
+
+Rules:
+
+- Organize around the systemic archetype, not a document pair.
+- Use at least three documents as different parameterizations of the same pattern.
+- Include where the cluster disagrees or weakens.
+- Do not describe the pipeline to the reader.
+- Do not flatten the piece into "A is like B".
+""",
 }
 
 COMMON_SKILL = """---
 name: daydream
-description: Find structural resonance in a local corpus and save grounded drafts or rejection reports.
+description: Run Daydream over a local corpus field, find resonance clusters, and save mesh drafts or rejection records.
 platforms: [macos, linux]
 ---
 
 # Daydream
 
-Use this skill when the user wants a curated local Markdown corpus to search for non-obvious structural connections and save a grounded draft or rejection report.
+Use this skill when the user wants a curated local Markdown corpus to daydream over itself, forming resonance clusters without a single seed document.
 
 ## Procedure
 
 1. Run `daydream doctor`.
-2. Run `daydream start-run --strategy auto`.
-3. Select a seed document or theme from `corpus/`.
-4. Produce 3-5 abstract search queries that target mechanisms, roles, tensions, constraints, and failure modes rather than surface topic.
-5. Run `daydream candidate-pool --collection corpus --target-size 50 "<query1>" "<query2>" "<query3>"`.
-6. Select candidates from the saved pool, preferring structural fit plus surface distance.
-7. Read the retrieved snippets and source passages needed for evidence.
-8. Extract structure cards using `prompts/extract_structure.md`.
-9. Save cards with `daydream save-card`.
-10. Compare cards using `prompts/compare_cards.md`.
-11. Save the pair report.
-12. Run the critic using `prompts/critic.md`.
-13. Save either a draft with `daydream save-draft` or a rejection with `daydream save-rejection`.
-14. Run `daydream inspect --run latest` and `daydream validate --run latest`.
+2. Run `daydream dream-run --collection corpus --limit 25`.
+3. Treat the saved `corpus_field.json` as the working field, not as a seed list.
+4. Extract or refresh structure cards for the field using `prompts/extract_structure.md`.
+5. Build candidate resonance edges across the field. Pairwise reports are internal edge checks only.
+6. Prune weak edges before expensive reasoning.
+7. For promising clusters, run the proponent analysis, then the opponent using `prompts/devil_advocate.md`.
+8. Run adjudication using `prompts/adjudicator.md`.
+9. Save opponent and adjudication reports with `daydream save-opponent-report` and `daydream save-adjudication-report`.
+10. Save a mesh report with `daydream save-mesh-report`.
+11. Write a mesh draft only after accepted adjudication using `prompts/mesh_draft.md`.
+12. Save the draft with `daydream save-mesh-draft`.
+13. Run `daydream inspect-dream --run latest`.
 
 ## Required Card Shape
 
 Structure cards must include central tension, mechanism, failure mode, solution pattern, roles, relations, abstractions, causal graph, and exact evidence spans.
 
+## Internal V2 Machinery
+
+`start-run`, `candidate-pool`, `save-pair-report`, and `save-draft` are internal support/debug commands. They are not the main Daydream user flow after V3.
+
 ## Draft Gate
 
-Draft only when the critic accepts. For reject or near miss, write a short rejection report explaining what was tempting and why it failed.
+Draft only when cluster-level adjudication accepts. For reject or near miss, write a short rejection record explaining what was tempting and why it failed.
 
 ## Verification
 
-- Do not draft unless the critic accepts.
-- Always include evidence spans from both sides.
+- Do not draft unless adjudication accepts.
+- Always include evidence spans from at least three documents for mesh reports.
 - Always include mismatch notes.
 - Treat rejection as a valid run result.
-- Validate the latest run before reporting completion.
+- Inspect the latest dream before reporting completion.
 """
 
 HERMES_SKILL = """---

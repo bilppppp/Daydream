@@ -50,10 +50,14 @@ class DaydreamCoreBehaviorTests(unittest.TestCase):
             self.assertIn("Daydream", (root / "README.md").read_text(encoding="utf-8"))
             self.assertTrue((root / "scripts/daydream-cron.sh").exists())
             self.assertIn("candidate-pool", (root / "skills/common/daydream/SKILL.md").read_text(encoding="utf-8"))
+            self.assertIn("dream-run", (root / "skills/common/daydream/SKILL.md").read_text(encoding="utf-8"))
             self.assertIn("causal_graph", (root / "prompts/extract_structure.md").read_text(encoding="utf-8"))
             self.assertIn("seed_evidence_spans", (root / "prompts/compare_cards.md").read_text(encoding="utf-8"))
             self.assertIn("mean score >= 4.0", (root / "prompts/critic.md").read_text(encoding="utf-8"))
             self.assertTrue((root / "prompts/constellation.md").exists())
+            self.assertTrue((root / "prompts/devil_advocate.md").exists())
+            self.assertTrue((root / "prompts/adjudicator.md").exists())
+            self.assertTrue((root / "prompts/mesh_draft.md").exists())
 
     def test_start_run_balances_strategies_and_updates_latest(self):
         with tempfile.TemporaryDirectory() as td:

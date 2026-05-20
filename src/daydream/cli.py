@@ -8,14 +8,19 @@ from typing import Any
 
 from .artifacts import (
     save_card,
+    save_adjudication_report,
     save_constellation_report,
     save_critic_report,
     save_draft,
+    save_mesh_draft,
+    save_mesh_report,
+    save_opponent_report,
     save_pair_report,
     save_rejection,
     validate_run,
 )
 from .candidates import build_candidate_pool
+from .dream import dream_run, inspect_dream
 from .evaluation import load_resonance_samples, summarize_sample_labels
 from .qmd import index_workspace, qmd_query
 from .runs import inspect_run, start_run
@@ -62,6 +67,10 @@ def build_parser() -> argparse.ArgumentParser:
     start = sub.add_parser("start-run")
     start.add_argument("--strategy", default="auto")
 
+    dream = sub.add_parser("dream-run")
+    dream.add_argument("--collection", default="corpus")
+    dream.add_argument("--limit", type=int, default=25)
+
     card = sub.add_parser("save-card")
     card.add_argument("--run", required=True)
     card.add_argument("--doc", required=True)
@@ -79,6 +88,23 @@ def build_parser() -> argparse.ArgumentParser:
     constellation.add_argument("--run", required=True)
     constellation.add_argument("--input", required=True)
 
+    opponent = sub.add_parser("save-opponent-report")
+    opponent.add_argument("--run", required=True)
+    opponent.add_argument("--input", required=True)
+
+    adjudication = sub.add_parser("save-adjudication-report")
+    adjudication.add_argument("--run", required=True)
+    adjudication.add_argument("--input", required=True)
+
+    mesh = sub.add_parser("save-mesh-report")
+    mesh.add_argument("--run", required=True)
+    mesh.add_argument("--input", required=True)
+
+    mesh_draft = sub.add_parser("save-mesh-draft")
+    mesh_draft.add_argument("--run", required=True)
+    mesh_draft.add_argument("--title", required=True)
+    mesh_draft.add_argument("--input", required=True)
+
     draft = sub.add_parser("save-draft")
     draft.add_argument("--run", required=True)
     draft.add_argument("--title", required=True)
@@ -90,6 +116,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     inspect = sub.add_parser("inspect")
     inspect.add_argument("--run", default="latest")
+
+    inspect_dream_parser = sub.add_parser("inspect-dream")
+    inspect_dream_parser.add_argument("--run", default="latest")
 
     validate = sub.add_parser("validate")
     validate.add_argument("--run", default="latest")
@@ -119,6 +148,8 @@ def dispatch(args: argparse.Namespace, root: Path) -> Any:
         )
     if args.command == "start-run":
         return start_run(root, args.strategy)
+    if args.command == "dream-run":
+        return dream_run(root, collection=args.collection, limit=args.limit)
     if args.command == "save-card":
         return save_card(root, args.run, args.doc, Path(args.input))
     if args.command == "save-pair-report":
@@ -127,12 +158,22 @@ def dispatch(args: argparse.Namespace, root: Path) -> Any:
         return save_critic_report(root, args.run, Path(args.input))
     if args.command == "save-constellation-report":
         return save_constellation_report(root, args.run, Path(args.input))
+    if args.command == "save-opponent-report":
+        return save_opponent_report(root, args.run, Path(args.input))
+    if args.command == "save-adjudication-report":
+        return save_adjudication_report(root, args.run, Path(args.input))
+    if args.command == "save-mesh-report":
+        return save_mesh_report(root, args.run, Path(args.input))
+    if args.command == "save-mesh-draft":
+        return save_mesh_draft(root, args.run, args.title, Path(args.input))
     if args.command == "save-draft":
         return save_draft(root, args.run, args.title, Path(args.input))
     if args.command == "save-rejection":
         return save_rejection(root, args.run, Path(args.input))
     if args.command == "inspect":
         return inspect_run(root, args.run)
+    if args.command == "inspect-dream":
+        return inspect_dream(root, args.run)
     if args.command == "validate":
         return validate_run(root, args.run)
     raise ValueError(f"Unknown command: {args.command}")

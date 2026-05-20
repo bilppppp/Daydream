@@ -1,0 +1,14 @@
+# Daydream qmd configuration
+collections:
+  corpus:
+    path: corpus
+    include:
+      - "**/*.md"
+    exclude:
+      - "../drafts/**"
+      - "drafts/**"
+  cards:
+    path: cards
+    include:
+      - "**/*.md"
+      - "**/*.jsonl"

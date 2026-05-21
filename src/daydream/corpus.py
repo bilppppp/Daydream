@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import random
 import shutil
 from pathlib import Path
@@ -29,7 +30,7 @@ def check_corpus(
     if not seeds:
         raise ValueError("Corpus does not contain an eligible seed document")
 
-    resolved_output = output_dir.resolve() if output_dir else None
+    resolved_output = _validate_output_dir(output_dir) if output_dir else None
     detected_qmd = shutil.which("qmd") if qmd_path is _AUTO_QMD else qmd_path
     return {
         "corpus": str(corpus),
@@ -123,3 +124,18 @@ def _looks_like_link_list(text: str) -> bool:
         if list_like and ("http://" in line or "https://" in line):
             link_lines += 1
     return link_lines == len(lines)
+
+
+def _validate_output_dir(output_dir: Path) -> Path:
+    resolved = output_dir.expanduser().resolve()
+    if resolved.exists():
+        if not resolved.is_dir():
+            raise ValueError(f"Output path is not a directory: {output_dir}")
+        if not os.access(resolved, os.W_OK):
+            raise ValueError(f"Output directory is not writable: {output_dir}")
+        return resolved
+
+    parent = resolved.parent
+    if not parent.exists() or not parent.is_dir() or not os.access(parent, os.W_OK):
+        raise ValueError(f"Output directory parent is not writable: {parent}")
+    return resolved

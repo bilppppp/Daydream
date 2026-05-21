@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "daydream"
 version = "0.1.0"
-description = "Local structural resonance daydreaming skill toolkit"
+description = "Portable corpus daydreaming skill with a thin semantic-search helper CLI"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
@@ -18,4 +18,3 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

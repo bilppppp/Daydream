@@ -24,20 +24,6 @@ def write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def append_jsonl(path: Path, payload: Any) -> None:
-    ensure_dir(path.parent)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
-
-
 def slugify(value: str, fallback: str = "untitled") -> str:
     slug = re.sub(r"[^A-Za-z0-9._-]+", "-", value.strip()).strip("-._")
     return slug.lower() or fallback
-
-
-def read_text_or_literal(value: str | Path) -> str:
-    path = Path(value)
-    if path.exists() and path.is_file():
-        return path.read_text(encoding="utf-8")
-    return str(value)
-

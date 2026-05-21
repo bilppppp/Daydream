@@ -72,7 +72,7 @@ class DaydreamCliTests(unittest.TestCase):
 
             self.assertEqual(result["valid"], "seed_card")
 
-    def test_semantic_search_runs_qmd_query_without_run_ledger(self):
+    def test_semantic_search_runs_qmd_without_run_artifacts(self):
         with tempfile.TemporaryDirectory() as td:
             corpus = Path(td)
             seen_args = []

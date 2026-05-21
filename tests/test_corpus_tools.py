@@ -74,6 +74,20 @@ class CorpusToolTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "no_qmd_policy"):
                 check_corpus(corpus, scheduled=True, no_qmd_policy="guess")
 
+    def test_check_corpus_rejects_output_path_that_is_a_file(self):
+        with tempfile.TemporaryDirectory() as td:
+            corpus = Path(td) / "corpus"
+            corpus.mkdir()
+            (corpus / "note.md").write_text(
+                "# Note\n\nA readable note with enough text for a dream seed.",
+                encoding="utf-8",
+            )
+            output_file = Path(td) / "output"
+            output_file.write_text("not a directory", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "output"):
+                check_corpus(corpus, output_dir=output_file)
+
 
 if __name__ == "__main__":
     unittest.main()

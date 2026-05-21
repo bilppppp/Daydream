@@ -10,6 +10,12 @@ Use this skill when the user asks an agent host to dream over a local corpus man
 
 Daydream starts from one eligible random seed document. Extract a seed card, use its concepts and mechanisms for semantic expansion, write a readable article with associative movement, and save the article with its JSON seed card and JSON constellation.
 
+## qmd
+
+Daydream prefers qmd as the semantic search layer over the user's corpus. It helps the host search from concepts, mechanisms, tensions, and dream questions instead of relying on surface keyword overlap.
+
+Read `references/qmd-setup.md` when the user needs qmd setup guidance. Read `references/fallback-without-qmd.md` when qmd is unavailable and the dream must decide whether to continue without it.
+
 ## Progressive Disclosure
 
 1. Read `references/dream-flow.md` before a dream.
@@ -17,8 +23,9 @@ Daydream starts from one eligible random seed document. Extract a seed card, use
 3. Read `references/qmd-search.md` and `prompts/expand-with-semantic-search.md` only when you are ready to search.
 4. Read `references/ranking.md` and `prompts/rank-connections.md` only when you are choosing final connections.
 5. Read `references/constellation-format.md`, `references/outputs.md`, and `prompts/write-daydream-article.md` only when you are writing and saving.
-6. Read `references/fallback-without-qmd.md` when qmd is unavailable.
-7. Read `references/cron.md` when the user asks for scheduled dreams.
+6. Read `references/qmd-setup.md` only when qmd needs setup or installation guidance.
+7. Read `references/fallback-without-qmd.md` when qmd is unavailable.
+8. Read `references/cron.md` when the user asks for scheduled dreams.
 
 ## Boundaries
 

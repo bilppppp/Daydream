@@ -10,6 +10,7 @@ class DaydreamSkillAssetTests(unittest.TestCase):
 
         self.assertIn("read `references/dream-flow.md`", skill_text)
         self.assertTrue((skill / "references/qmd-search.md").exists())
+        self.assertTrue((skill / "references/qmd-setup.md").exists())
         self.assertTrue((skill / "references/fallback-without-qmd.md").exists())
         self.assertTrue((skill / "references/seed-card-format.md").exists())
         self.assertTrue((skill / "references/constellation-format.md").exists())
@@ -36,6 +37,14 @@ class DaydreamSkillAssetTests(unittest.TestCase):
         flow = (Path("skills/daydream") / "references/dream-flow.md").read_text(encoding="utf-8").lower()
 
         self.assertIn("seed alignment check", flow)
+
+    def test_skill_points_qmd_setup_to_upstream_repo(self):
+        skill = Path("skills/daydream")
+        skill_text = (skill / "SKILL.md").read_text(encoding="utf-8").lower()
+        setup = (skill / "references/qmd-setup.md").read_text(encoding="utf-8")
+
+        self.assertIn("references/qmd-setup.md", skill_text)
+        self.assertIn("https://github.com/tobi/qmd", setup)
 
 
 if __name__ == "__main__":

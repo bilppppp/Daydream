@@ -69,9 +69,9 @@
       "strength": 0.75,
       "connection_name": "Connection name",
       "connection_kind": "mechanism_match",
-      "why_it_matters": "Why the article needs this connection.",
+      "why_it_matters": "Why this connection matters to the dream.",
       "why_not_topic_overlap": "Why this is more than surface similarity.",
-      "used_in_article_section": "Section title or paragraph summary.",
+      "used_in_article_section": "Section title or paragraph summary, or null when unused.",
       "documents_involved": [
         "seed-doc"
       ]

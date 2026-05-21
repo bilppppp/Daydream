@@ -1,6 +1,6 @@
 # Expand With Semantic Search
 
-Use the seed card to search the corpus repeatedly.
+Use the seed card to search the corpus repeatedly. Do not collapse the whole seed card into one qmd query.
 
 Start with the strongest `search_text` values. Then branch into:
 

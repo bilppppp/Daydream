@@ -10,8 +10,9 @@ Use the upstream project as the source of truth for installation and setup:
 For Daydream, the host should use that upstream guidance to:
 
 1. install qmd,
-2. make the user's corpus searchable,
-3. prepare semantic search for that corpus,
-4. verify qmd search works before starting or scheduling dreams.
+2. add the user's target corpus as a qmd collection with a known collection name,
+3. prepare semantic search for that collection,
+4. keep that collection name with the corpus path for Daydream searches,
+5. verify collection-scoped qmd search works before starting or scheduling dreams.
 
 Do not duplicate or guess changing qmd installation details here. Follow the upstream README for the user's platform and current qmd version.

@@ -1,9 +1,11 @@
 # Without qmd
 
-For a manual dream, warn the user before continuing when qmd is unavailable:
+Normal Daydream depends on qmd. A host-only fallback is degraded because it cannot claim the same corpus coverage, connection strength, or retrieval trail.
+
+For a manual dream, warn the user before continuing when qmd is unavailable or still failing after qmd troubleshooting:
 
 ```text
-qmd semantic search is not available right now. I can continue by reading and reasoning over the corpus directly, but that can use more context and may be slower or less complete. Should I continue?
+qmd semantic search is not available right now, so normal Daydream is blocked. I can continue in a degraded host-only mode by reading and reasoning over the corpus directly, but the coverage and connection strengths will be less reliable. Should I continue?
 ```
 
 Continue only after the user allows it.

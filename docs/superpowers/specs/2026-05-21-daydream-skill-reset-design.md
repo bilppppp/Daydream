@@ -173,7 +173,7 @@ The required first-version shape is:
   "seed_document": {
     "title": "Seed document title",
     "path": "/path/to/document.md",
-    "source_layer": "hermes | openclaw | vibe-coding | notebooklm | home-server | essay | other"
+    "source_layer": "Freeform source label, such as notes, essays, bookmarks, hermes, openclaw, etc."
   },
   "core_summary": "The central meaning of the seed document",
   "core_claim": "The one sentence the seed most wants to prove or express",
@@ -312,7 +312,7 @@ The first-version shape is:
   "seed_document": {
     "title": "Seed document title",
     "path": "/path/to/seed-document.md",
-    "source_layer": "hermes | openclaw | vibe-coding | notebooklm | home-server | essay | other"
+    "source_layer": "Freeform source label, such as notes, essays, bookmarks, hermes, openclaw, etc."
   },
   "nodes": [
     {
@@ -320,7 +320,7 @@ The first-version shape is:
       "type": "document",
       "title": "Document title",
       "path": "/path/to/document.md",
-      "source_layer": "essay",
+      "source_layer": "notes",
       "role": "seed | source | bridge | distant_echo"
     },
     {

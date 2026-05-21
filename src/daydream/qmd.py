@@ -18,6 +18,26 @@ def default_runner(args: list[str], cwd: Path) -> str:
     return completed.stdout
 
 
+def semantic_search(
+    corpus: Path,
+    query: str,
+    *,
+    collection: str | None = None,
+    limit: int = 12,
+    runner: Runner = default_runner,
+    no_rerank: bool = False,
+) -> list[dict[str, Any]]:
+    args = ["qmd", "query", query, "--json", "-n", str(limit)]
+    if collection:
+        args.extend(["-c", collection])
+    if no_rerank:
+        args.append("--no-rerank")
+    data = json.loads(runner(args, corpus) or "[]")
+    if not isinstance(data, list):
+        raise ValueError("qmd query did not return a JSON list")
+    return [item for item in data if isinstance(item, dict)]
+
+
 def qmd_query(
     root: Path,
     query: str,

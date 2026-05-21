@@ -6,33 +6,18 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .artifacts import (
-    save_card,
-    save_adjudication_report,
-    save_constellation_report,
-    save_critic_report,
-    save_draft,
-    save_mesh_draft,
-    save_mesh_report,
-    save_opponent_report,
-    save_pair_report,
-    save_rejection,
-    validate_run,
-)
-from .candidates import build_candidate_pool
-from .dream import dream_run, inspect_dream
-from .evaluation import load_resonance_samples, summarize_sample_labels
-from .qmd import index_workspace, qmd_query
-from .runs import inspect_run, start_run
-from .workspace import doctor, init_workspace
+from .corpus import check_corpus, pick_seed
+from .fs import read_json
+from .outputs import save_dream_outputs
+from .qmd import semantic_search
+from .schemas import validate_constellation, validate_seed_card
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    root = Path(getattr(args, "root", ".")).resolve()
     try:
-        result = dispatch(args, root)
+        result = dispatch(args)
     except Exception as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -43,140 +28,79 @@ def main(argv: list[str] | None = None) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="daydream")
-    parser.add_argument("--root", default=".", help="Project root")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("init")
-    sub.add_parser("doctor")
-    sub.add_parser("index")
-    sub.add_parser("eval-samples")
+    check = sub.add_parser("check")
+    check.add_argument("--corpus", required=True)
+    check.add_argument("--output-dir")
+    check.add_argument("--scheduled", action="store_true")
+    check.add_argument("--no-qmd-policy", default="fail")
+    check.add_argument("--allow-json", action="store_true")
 
-    query = sub.add_parser("qmd-query")
-    query.add_argument("query")
-    query.add_argument("--collection", default="corpus")
-    query.add_argument("--limit", type=int, default=12)
-    query.add_argument("--no-rerank", action="store_true", help="Skip qmd reranking for fast offline checks")
+    seed = sub.add_parser("pick-seed")
+    seed.add_argument("--corpus", required=True)
+    seed.add_argument("--allow-json", action="store_true")
 
-    pool = sub.add_parser("candidate-pool")
-    pool.add_argument("queries", nargs="+")
-    pool.add_argument("--collection", default="corpus")
-    pool.add_argument("--per-query-limit", type=int, default=25)
-    pool.add_argument("--target-size", type=int, default=50)
-    pool.add_argument("--no-rerank", action="store_true")
+    search = sub.add_parser("search")
+    search.add_argument("query")
+    search.add_argument("--corpus", required=True)
+    search.add_argument("--collection")
+    search.add_argument("--limit", type=int, default=12)
+    search.add_argument("--no-rerank", action="store_true")
 
-    start = sub.add_parser("start-run")
-    start.add_argument("--strategy", default="auto")
+    validate_seed = sub.add_parser("validate-seed-card")
+    validate_seed.add_argument("input")
 
-    dream = sub.add_parser("dream-run")
-    dream.add_argument("--collection", default="corpus")
-    dream.add_argument("--limit", type=int, default=25)
+    validate_graph = sub.add_parser("validate-constellation")
+    validate_graph.add_argument("input")
 
-    card = sub.add_parser("save-card")
-    card.add_argument("--run", required=True)
-    card.add_argument("--doc", required=True)
-    card.add_argument("--input", required=True)
-
-    pair = sub.add_parser("save-pair-report")
-    pair.add_argument("--run", required=True)
-    pair.add_argument("--input", required=True)
-
-    critic = sub.add_parser("save-critic-report")
-    critic.add_argument("--run", required=True)
-    critic.add_argument("--input", required=True)
-
-    constellation = sub.add_parser("save-constellation-report")
-    constellation.add_argument("--run", required=True)
-    constellation.add_argument("--input", required=True)
-
-    opponent = sub.add_parser("save-opponent-report")
-    opponent.add_argument("--run", required=True)
-    opponent.add_argument("--input", required=True)
-
-    adjudication = sub.add_parser("save-adjudication-report")
-    adjudication.add_argument("--run", required=True)
-    adjudication.add_argument("--input", required=True)
-
-    mesh = sub.add_parser("save-mesh-report")
-    mesh.add_argument("--run", required=True)
-    mesh.add_argument("--input", required=True)
-
-    mesh_draft = sub.add_parser("save-mesh-draft")
-    mesh_draft.add_argument("--run", required=True)
-    mesh_draft.add_argument("--title", required=True)
-    mesh_draft.add_argument("--input", required=True)
-
-    draft = sub.add_parser("save-draft")
-    draft.add_argument("--run", required=True)
-    draft.add_argument("--title", required=True)
-    draft.add_argument("--input", required=True)
-
-    rejection = sub.add_parser("save-rejection")
-    rejection.add_argument("--run", required=True)
-    rejection.add_argument("--input", required=True)
-
-    inspect = sub.add_parser("inspect")
-    inspect.add_argument("--run", default="latest")
-
-    inspect_dream_parser = sub.add_parser("inspect-dream")
-    inspect_dream_parser.add_argument("--run", default="latest")
-
-    validate = sub.add_parser("validate")
-    validate.add_argument("--run", default="latest")
+    save = sub.add_parser("save-dream")
+    save.add_argument("--article", required=True)
+    save.add_argument("--seed-card", required=True)
+    save.add_argument("--constellation", required=True)
+    save.add_argument("--keywords", required=True)
+    save.add_argument("--output-dir")
     return parser
 
 
-def dispatch(args: argparse.Namespace, root: Path) -> Any:
-    if args.command == "init":
-        return init_workspace(root)
-    if args.command == "doctor":
-        return doctor(root)
-    if args.command == "index":
-        return index_workspace(root)
-    if args.command == "eval-samples":
-        samples = load_resonance_samples(root / "docs/resonance_samples")
-        return {"total": len(samples), "labels": summarize_sample_labels(samples)}
-    if args.command == "qmd-query":
-        return qmd_query(root, args.query, collection=args.collection, limit=args.limit, no_rerank=args.no_rerank)
-    if args.command == "candidate-pool":
-        return build_candidate_pool(
-            root,
-            queries=args.queries,
+def dispatch(args: argparse.Namespace) -> Any:
+    if args.command == "check":
+        return check_corpus(
+            Path(args.corpus),
+            output_dir=Path(args.output_dir) if args.output_dir else None,
+            scheduled=args.scheduled,
+            no_qmd_policy=args.no_qmd_policy,
+            allow_json=args.allow_json,
+        )
+    if args.command == "pick-seed":
+        return pick_seed(Path(args.corpus), allow_json=args.allow_json)
+    if args.command == "search":
+        return semantic_search(
+            Path(args.corpus),
+            args.query,
             collection=args.collection,
-            per_query_limit=args.per_query_limit,
-            target_size=args.target_size,
+            limit=args.limit,
             no_rerank=args.no_rerank,
         )
-    if args.command == "start-run":
-        return start_run(root, args.strategy)
-    if args.command == "dream-run":
-        return dream_run(root, collection=args.collection, limit=args.limit)
-    if args.command == "save-card":
-        return save_card(root, args.run, args.doc, Path(args.input))
-    if args.command == "save-pair-report":
-        return save_pair_report(root, args.run, Path(args.input))
-    if args.command == "save-critic-report":
-        return save_critic_report(root, args.run, Path(args.input))
-    if args.command == "save-constellation-report":
-        return save_constellation_report(root, args.run, Path(args.input))
-    if args.command == "save-opponent-report":
-        return save_opponent_report(root, args.run, Path(args.input))
-    if args.command == "save-adjudication-report":
-        return save_adjudication_report(root, args.run, Path(args.input))
-    if args.command == "save-mesh-report":
-        return save_mesh_report(root, args.run, Path(args.input))
-    if args.command == "save-mesh-draft":
-        return save_mesh_draft(root, args.run, args.title, Path(args.input))
-    if args.command == "save-draft":
-        return save_draft(root, args.run, args.title, Path(args.input))
-    if args.command == "save-rejection":
-        return save_rejection(root, args.run, Path(args.input))
-    if args.command == "inspect":
-        return inspect_run(root, args.run)
-    if args.command == "inspect-dream":
-        return inspect_dream(root, args.run)
-    if args.command == "validate":
-        return validate_run(root, args.run)
+    if args.command == "validate-seed-card":
+        validate_seed_card(read_json(Path(args.input)))
+        return {"valid": "seed_card", "path": str(Path(args.input))}
+    if args.command == "validate-constellation":
+        validate_constellation(read_json(Path(args.input)))
+        return {"valid": "constellation", "path": str(Path(args.input))}
+    if args.command == "save-dream":
+        return save_dream_outputs(
+            output_dir=Path(args.output_dir) if args.output_dir else default_output_dir(),
+            article_path=Path(args.article),
+            seed_card_path=Path(args.seed_card),
+            constellation_path=Path(args.constellation),
+            keywords=args.keywords,
+        )
     raise ValueError(f"Unknown command: {args.command}")
+
+
+def default_output_dir() -> Path:
+    return Path(__file__).resolve().parents[2] / "skills" / "daydream" / "output"
 
 
 if __name__ == "__main__":

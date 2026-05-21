@@ -1,80 +1,67 @@
 # Daydream
 
-Daydream is a local command line tool plus a portable agent skill. It lets an agent search a curated Markdown corpus, find structural resonance between distant documents, and save either a grounded draft or a clear rejection record.
+Daydream is a portable agent skill plus a thin helper CLI. It lets an agent host start from one random seed document, expand the seed through qmd semantic search, write a daydream article, and save the concept network behind the article.
 
-The local tool handles setup, qmd, validation, files, and run history. The host agent, such as Hermes, OpenClaw, Codex, or Claude Code, handles judgment and writing.
+The skill is the product surface. Hermes, OpenClaw, Claude Code, Codex, and similar hosts read the skill, understand the seed, judge connections, and write. The CLI only handles mechanical steps that should stay consistent.
+
+## What A Dream Produces
+
+Each completed dream saves three linked outputs:
+
+```text
+skills/daydream/output/
+  YYYYMMDD-HHMMSS-keywords.md
+  YYYYMMDD-HHMMSS-keywords.seed-card.json
+  YYYYMMDD-HHMMSS-keywords.constellation.json
+```
+
+The Markdown file is the article. The seed card records how the seed document was understood for search. The constellation records the concept network used by the article.
 
 ## Install
 
 Requirements:
 
-- Python 3.11 or newer
-- qmd
-- A terminal-capable host agent
-- A local Markdown corpus in `corpus/`
+- Python 3.11 or newer for the helper CLI
+- qmd for preferred semantic search
+- an agent host that can read an installed skill and work with local files
 
-From this repository:
+Install the helper CLI from this repository:
 
 ```bash
 python3 -m pip install -e .
-daydream init
-daydream doctor
 ```
 
-For local development without installing:
+Install or copy the portable skill directory into the host skill location:
+
+```text
+skills/daydream/
+```
+
+## Start A Dream
+
+Ask the host to use the Daydream skill and give it a corpus path. The skill tells the host when to read each reference, prompt, and JSON template.
+
+The helper CLI exposes the mechanical steps:
 
 ```bash
-PYTHONPATH=src python3 -m daydream doctor
+daydream check --corpus /path/to/corpus
+daydream pick-seed --corpus /path/to/corpus
+daydream search --corpus /path/to/corpus "semantic search text from the seed card"
+daydream validate-seed-card /path/to/seed-card.json
+daydream validate-constellation /path/to/constellation.json
+daydream save-dream \
+  --article /path/to/article.md \
+  --seed-card /path/to/seed-card.json \
+  --constellation /path/to/constellation.json \
+  --keywords "memory feedback"
 ```
 
-## Run Manually
+`daydream save-dream` writes to `skills/daydream/output/` unless `--output-dir` overrides it.
 
-Index the corpus:
+## Search Behavior
 
-```bash
-daydream index
-```
+qmd is the preferred search path. Daydream searches with semantic search text derived from concepts, mechanisms, failure modes, and dream questions in the seed card.
 
-Start a run:
+If qmd is unavailable during a manual dream, the host must warn the user before continuing with direct reading. Scheduled dreams use a `no_qmd_policy`; the default policy is `fail`.
 
-```bash
-daydream start-run --strategy auto
-```
-
-Then let the host agent follow `skills/common/daydream/SKILL.md`. It will use the prompts in `prompts/`, save intermediate artifacts, and finish with either a draft or a rejection.
-
-Inspect the result:
-
-```bash
-daydream inspect --run latest
-daydream validate --run latest
-```
-
-## Hermes
-
-Install or copy `skills/hermes/daydream/` into the Hermes skill location, and keep `skills/common/daydream/` available as the shared procedure.
-
-Use the Hermes skill manually first. After one successful manual run, schedule it with Hermes cron using the example in `skills/hermes/daydream/SKILL.md`.
-
-## OpenClaw
-
-Install or copy `skills/openclaw/daydream/` into the OpenClaw skill location. Use the same core commands and prompts from this repository.
-
-## Shell Cron Fallback
-
-For a plain cron job, configure `DAYDREAM_AGENT_CMD` to run your chosen host agent with the Daydream skill, then call:
-
-```bash
-scripts/daydream-cron.sh
-```
-
-The script writes logs under `logs/` and fails loudly if the agent command is missing or the latest run does not validate.
-
-## Output
-
-- `cards/`: generated structure cards
-- `runs/`: every run and its evidence trail
-- `drafts/`: accepted drafts only
-- `logs/`: scheduled-run logs
-
-Generated drafts are not added back into the primary corpus by default.
+Daydream should not fall back to grep or keyword-only file matching as a substitute for semantic expansion.

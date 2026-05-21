@@ -25,7 +25,7 @@ The first implementation should:
 1. Provide one portable skill as the main product surface.
 2. Let a user start a dream by supplying a corpus path.
 3. Let a host with scheduling support run the same skill on cron or an equivalent schedule.
-4. Randomly select one corpus document as the seed for a dream.
+4. Randomly select one eligible corpus document as the seed for a dream.
 5. Require the host to turn that seed into a structured JSON dream seed card.
 6. Use semantic search, preferably through qmd, to expand the seed card into connected corpus material.
 7. Rank and classify concept connections after search instead of treating retrieval order as the final constellation.
@@ -67,7 +67,7 @@ The helper tool owns only deterministic or mechanical work:
 
 1. Check that the corpus path exists and contains readable documents.
 2. Check qmd availability and output-directory writability.
-3. Randomly select one seed document from the corpus.
+3. Randomly select one eligible seed document from the corpus.
 4. Run qmd semantic searches from host-provided search text.
 5. Save linked output files with a shared completion-time and keyword prefix.
 6. Validate the JSON shape of dream seed cards and constellations before reporting success.
@@ -94,7 +94,7 @@ The host agent owns:
 1. User asks a supported host to dream and provides a corpus path.
 2. Host reads `SKILL.md`, then only the referenced instructions needed for this run.
 3. Helper tool checks the corpus, qmd status, and output location.
-4. Helper tool randomly selects one seed document.
+4. Helper tool randomly selects one eligible seed document.
 5. Host reads the seed and writes a JSON dream seed card.
 6. Host derives semantic queries from the seed card.
 7. Helper tool runs qmd searches over the corpus when qmd is available.
@@ -110,10 +110,18 @@ The portable skill should define what scheduling needs:
 
 1. corpus path,
 2. output location when the default is overridden,
-3. whether the host may continue without qmd after warning the user,
+3. `no_qmd_policy`,
 4. what the host should return after each completed dream.
 
 The host provides the concrete scheduling mechanism. Hermes cron, OpenClaw scheduling, Claude Code, Codex, or any future host should reuse the same dream flow rather than fork the product logic.
+
+`no_qmd_policy` must be explicit for scheduled dreams because no user may be present to answer a fallback prompt:
+
+1. `fail`: stop the scheduled dream when qmd is unavailable.
+2. `warn_and_continue`: continue without qmd and include the warning in the run result.
+3. `continue_silent`: continue without qmd without requiring a warning in the run result.
+
+The default scheduled policy is `fail`.
 
 ## 6. Skill Layout
 
@@ -126,18 +134,18 @@ daydream/
     dream-flow.md
     qmd-search.md
     fallback-without-qmd.md
-    structure-card-format.md
+    seed-card-format.md
     constellation-format.md
     ranking.md
     outputs.md
     cron.md
   prompts/
-    extract-structure-card.md
+    extract-seed-card.md
     expand-with-semantic-search.md
     rank-connections.md
     write-daydream-article.md
   templates/
-    structure-card.json
+    seed-card.json
     constellation.json
     article.md
   output/
@@ -221,7 +229,20 @@ The required first-version shape is:
 
 The highest-value search fields are concept `search_text`, mechanism `search_text`, failure-mode `search_text`, dream questions, core claim, and tensions. Keywords help interpretation but do not define the retrieval method.
 
-## 8. Semantic Expansion
+## 8. Seed Eligibility
+
+Random seed selection should avoid documents that are technically present in a corpus tree but are poor dream starts.
+
+An eligible seed document:
+
+1. must be readable text or Markdown,
+2. must contain enough text for the host to understand a claim, concept, mechanism, tension, or failure mode,
+3. must not live under `output/`,
+4. must not be JSON unless the user explicitly allows JSON seeds.
+
+The helper tool should exclude obviously unsuitable generated outputs and empty files. Skill guidance should also tell the host to resample when a selected seed is only a directory index, README, or pure link list that does not support a meaningful seed card.
+
+## 9. Semantic Expansion
 
 Daydream should use qmd semantic search when qmd is available.
 
@@ -240,7 +261,7 @@ qmd rank is retrieval evidence, not final constellation rank. The host decides w
 
 Useful connections should not be dropped only to conserve tokens. A connection may be excluded when it stays topical or does not participate in the final thought network.
 
-## 9. Ranking
+## 10. Ranking
 
 Final connection ranking should consider:
 
@@ -259,7 +280,7 @@ First-version connection kinds are:
 5. `distant_echo`
 6. `contrast`
 
-## 10. Article
+## 11. Article
 
 The article is saved as Markdown.
 
@@ -272,7 +293,7 @@ The writing prompt should forbid:
 3. presenting a citation inventory instead of an idea,
 4. forcing every connection into a tidy equivalence.
 
-## 11. Constellation
+## 12. Constellation
 
 The constellation is saved as JSON. It is an output of the current dream, not persistent memory for future dreams.
 
@@ -329,7 +350,10 @@ The first-version shape is:
       "to_node": "concept-b",
       "strength": 0.94,
       "connection_name": "Connection name",
+      "connection_kind": "mechanism_match",
       "why_it_matters": "Why the article needs this connection",
+      "why_not_topic_overlap": "Why this is more than surface similarity",
+      "used_in_article_section": "Section title or paragraph summary",
       "documents_involved": [
         "seed-doc",
         "source-doc-2"
@@ -347,22 +371,24 @@ The first-version shape is:
 
 The graph should record connections that matter to the final thought network. It does not need to create all pairwise edges among retrieved documents.
 
-## 12. Output Naming
+`ranked_connections` must make the anti-overlap argument explicit. A ranked connection should say what kind of connection it is, why it is not merely topical similarity, and where it is used in the article.
+
+## 13. Output Naming
 
 By default, the helper tool saves outputs under the skill `output/` directory with one shared prefix derived from completion time and article keywords:
 
 ```text
 output/
   YYYYMMDD-HHMMSS-keywords.md
-  YYYYMMDD-HHMMSS-keywords.structure-card.json
+  YYYYMMDD-HHMMSS-keywords.seed-card.json
   YYYYMMDD-HHMMSS-keywords.constellation.json
 ```
 
 The article title and keyword prefix may be proposed by the host, but the helper tool should normalize the saved filenames.
 
-## 13. qmd Fallback
+## 14. qmd Fallback
 
-When qmd is unavailable, the host must tell the user before continuing:
+In a manual dream, when qmd is unavailable, the host must tell the user before continuing:
 
 1. qmd semantic search is not currently available,
 2. Daydream can continue by relying on the host to read and reason over the corpus directly,
@@ -370,20 +396,23 @@ When qmd is unavailable, the host must tell the user before continuing:
 
 If the user permits continuation, the fallback still follows semantic intent. It must not silently become grep-driven retrieval.
 
-## 14. Validation and Verification
+Scheduled dreams follow `no_qmd_policy` instead of waiting for user confirmation.
+
+## 15. Validation and Verification
 
 The implementation should verify:
 
 1. corpus-path checks reject unusable paths,
-2. seed selection returns a real readable document from the corpus,
+2. seed selection returns a real readable eligible document from the corpus,
 3. qmd search wrapper performs semantic-search calls when qmd is present,
 4. JSON validation rejects malformed dream seed cards,
 5. JSON validation rejects malformed constellations,
 6. save flow writes three linked files with one shared prefix,
 7. a representative host run can complete from seed selection to saved outputs,
-8. the no-qmd branch warns before continuation.
+8. manual no-qmd flow warns before continuation,
+9. scheduled no-qmd flow follows `no_qmd_policy`, defaulting to `fail`.
 
-## 15. Repository Consequences
+## 16. Repository Consequences
 
 The current repository is heavier than this product definition. Implementation planning should decide what to remove, move aside, or keep only as reference.
 

@@ -2,6 +2,8 @@
 
 Normal Daydream depends on qmd. A host-only fallback is degraded because it cannot claim the same corpus coverage, connection strength, or retrieval trail.
 
+Before using this fallback, try qmd-only recovery first. The bundled search helper retries the qmd query path on CPU and then a lighter qmd vector path unless recovery is explicitly disabled. Those paths are still normal qmd retrieval, not this degraded host-only mode.
+
 For a manual dream, warn the user before continuing when qmd is unavailable or still failing after qmd troubleshooting:
 
 ```text

@@ -15,6 +15,7 @@ from typing import Any, Callable
 
 TEXT_SUFFIXES = {".md", ".markdown", ".txt"}
 NO_QMD_POLICIES = {"fail", "warn_and_continue", "continue_silent"}
+QMD_RECOVERY_POLICIES = {"auto", "off"}
 SEED_CARD_REQUIRED = {
     "card_type",
     "seed_document",
@@ -54,7 +55,7 @@ CONNECTION_KINDS = {
 }
 
 Chooser = Callable[[list[Path]], Path]
-Runner = Callable[[list[str], Path], str]
+Runner = Callable[[list[str], Path, dict[str, str] | None], str]
 _AUTO_QMD = object()
 
 
@@ -81,6 +82,12 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--scheduled", action="store_true")
     check.add_argument("--no-qmd-policy", default="fail")
     check.add_argument("--allow-json", action="store_true")
+    check.add_argument("--collection")
+    check.add_argument("--qmd-probe-query")
+    check.add_argument("--env-file")
+    check.add_argument("--no-rerank", action="store_true")
+    check.add_argument("--no-gpu", action="store_true")
+    check.add_argument("--recovery", choices=sorted(QMD_RECOVERY_POLICIES), default="auto")
 
     seed = sub.add_parser("pick-seed")
     seed.add_argument("--corpus", required=True)
@@ -94,6 +101,8 @@ def build_parser() -> argparse.ArgumentParser:
     search.add_argument("--limit", type=int, default=12)
     search.add_argument("--no-rerank", action="store_true")
     search.add_argument("--no-gpu", action="store_true")
+    search.add_argument("--env-file")
+    search.add_argument("--recovery", choices=sorted(QMD_RECOVERY_POLICIES), default="auto")
 
     validate_seed = sub.add_parser("validate-seed-card")
     validate_seed.add_argument("input")
@@ -118,6 +127,12 @@ def dispatch(args: argparse.Namespace) -> Any:
             scheduled=args.scheduled,
             no_qmd_policy=args.no_qmd_policy,
             allow_json=args.allow_json,
+            qmd_collection=args.collection,
+            qmd_probe_query=args.qmd_probe_query,
+            qmd_env=qmd_env_from_file(Path(args.env_file)) if args.env_file else None,
+            no_rerank=args.no_rerank,
+            no_gpu=args.no_gpu,
+            recovery=args.recovery,
         )
     if args.command == "pick-seed":
         return pick_seed(Path(args.corpus), allow_json=args.allow_json)
@@ -130,6 +145,8 @@ def dispatch(args: argparse.Namespace) -> Any:
             limit=args.limit,
             no_rerank=args.no_rerank,
             no_gpu=args.no_gpu,
+            qmd_env=qmd_env_from_file(Path(args.env_file)) if args.env_file else None,
+            recovery=args.recovery,
         )
     if args.command == "validate-seed-card":
         validate_seed_card(read_json(Path(args.input)))
@@ -160,6 +177,13 @@ def check_corpus(
     scheduled: bool = False,
     no_qmd_policy: str = "fail",
     allow_json: bool = False,
+    qmd_collection: str | None = None,
+    qmd_probe_query: str | None = None,
+    qmd_env: dict[str, str] | None = None,
+    qmd_runner: Runner | None = None,
+    no_rerank: bool = False,
+    no_gpu: bool = False,
+    recovery: str = "auto",
 ) -> dict[str, Any]:
     corpus = _require_corpus_dir(corpus)
     if scheduled and no_qmd_policy not in NO_QMD_POLICIES:
@@ -170,11 +194,23 @@ def check_corpus(
         raise ValueError("Corpus does not contain an eligible seed document")
 
     resolved_output = _validate_output_dir(output_dir) if output_dir else None
-    detected_qmd = shutil.which("qmd") if qmd_path is _AUTO_QMD else qmd_path
+    qmd_path_env = (qmd_env or os.environ).get("PATH")
+    detected_qmd = shutil.which("qmd", path=qmd_path_env) if qmd_path is _AUTO_QMD else qmd_path
+    qmd_probe = _check_qmd_probe(
+        corpus,
+        qmd_path=detected_qmd,
+        collection=qmd_collection,
+        query=qmd_probe_query,
+        qmd_env=qmd_env,
+        runner=qmd_runner,
+        no_rerank=no_rerank,
+        no_gpu=no_gpu,
+        recovery=recovery,
+    )
     return {
         "corpus": str(corpus),
         "eligible_seed_count": len(seeds),
-        "qmd": {"available": bool(detected_qmd), "path": detected_qmd},
+        "qmd": {"available": bool(detected_qmd), "path": detected_qmd, "probe": qmd_probe},
         "scheduled": scheduled,
         "no_qmd_policy": no_qmd_policy if scheduled else None,
         "output_dir": str(resolved_output) if resolved_output else None,
@@ -243,30 +279,118 @@ def semantic_search(
     runner: Runner | None = None,
     no_rerank: bool = False,
     no_gpu: bool = False,
+    qmd_env: dict[str, str] | None = None,
+    recovery: str = "auto",
 ) -> list[dict[str, Any]]:
     if not collection and not allow_cross_collection:
         raise ValueError(
             "Search scope is ambiguous. Pass --collection <qmd collection> to stay inside the target corpus, "
             "or pass --allow-cross-collection intentionally."
         )
-    args = ["qmd", "query", query, "--json", "-n", str(limit)]
-    if collection:
-        args.extend(["-c", collection])
-    if no_rerank:
-        args.append("--no-rerank")
-    if no_gpu:
-        args.append("--no-gpu")
-    data = json.loads((runner or default_runner)(args, corpus) or "[]")
-    if not isinstance(data, list):
-        raise ValueError("qmd query did not return a JSON list")
-    return [item for item in data if isinstance(item, dict)]
+    if recovery not in QMD_RECOVERY_POLICIES:
+        raise ValueError("recovery must be auto or off")
+
+    attempts = [_qmd_search_args("query", query, collection, limit, no_rerank=no_rerank, no_gpu=no_gpu)]
+    if recovery == "auto":
+        if not no_gpu:
+            attempts.append(_qmd_search_args("query", query, collection, limit, no_rerank=no_rerank, no_gpu=True))
+        attempts.append(_qmd_search_args("vsearch", query, collection, limit, no_rerank=False, no_gpu=True))
+
+    failures: list[str] = []
+    for args in attempts:
+        try:
+            data = json.loads((runner or default_runner)(args, corpus, qmd_env) or "[]")
+        except RuntimeError as exc:
+            failures.append(f"{args[1]}: {exc}")
+            continue
+        if not isinstance(data, list):
+            raise ValueError(f"qmd {args[1]} did not return a JSON list")
+        return [item for item in data if isinstance(item, dict)]
+
+    raise RuntimeError("qmd semantic search failed after recovery attempts: " + " | ".join(failures))
 
 
-def default_runner(args: list[str], cwd: Path) -> str:
-    completed = subprocess.run(args, cwd=cwd, text=True, capture_output=True, check=False)
+def default_runner(args: list[str], cwd: Path, env: dict[str, str] | None = None) -> str:
+    completed = subprocess.run(args, cwd=cwd, env=env, text=True, capture_output=True, check=False)
     if completed.returncode != 0:
         raise RuntimeError(completed.stderr.strip() or completed.stdout.strip())
     return completed.stdout
+
+
+def qmd_env_from_file(path: Path, base_env: dict[str, str] | None = None) -> dict[str, str]:
+    env = dict(os.environ if base_env is None else base_env)
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line.removeprefix("export ").strip()
+        if "=" not in line:
+            raise ValueError(f"Invalid env line {line_number} in {path}: expected KEY=VALUE")
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
+            raise ValueError(f"Invalid env key on line {line_number} in {path}: {key}")
+        env[key] = value.strip().strip("\"'")
+    return env
+
+
+def _check_qmd_probe(
+    corpus: Path,
+    *,
+    qmd_path: str | None,
+    collection: str | None,
+    query: str | None,
+    qmd_env: dict[str, str] | None,
+    runner: Runner | None,
+    no_rerank: bool,
+    no_gpu: bool,
+    recovery: str,
+) -> dict[str, Any]:
+    if not query:
+        return {
+            "status": "not_run",
+            "reason": "Pass --collection and --qmd-probe-query to run a real collection-scoped qmd search.",
+        }
+    if not collection:
+        raise ValueError("--qmd-probe-query requires --collection")
+    if not qmd_path:
+        return {"status": "failed", "error": "qmd binary was not found"}
+
+    try:
+        results = semantic_search(
+            corpus,
+            query,
+            collection=collection,
+            limit=1,
+            runner=runner,
+            no_rerank=no_rerank,
+            no_gpu=no_gpu,
+            qmd_env=qmd_env,
+            recovery=recovery,
+        )
+    except Exception as exc:
+        return {"status": "failed", "error": str(exc)}
+    return {"status": "passed", "collection": collection, "result_count": len(results)}
+
+
+def _qmd_search_args(
+    mode: str,
+    query: str,
+    collection: str | None,
+    limit: int,
+    *,
+    no_rerank: bool,
+    no_gpu: bool,
+) -> list[str]:
+    args = ["qmd", mode, query, "--json", "-n", str(limit)]
+    if collection:
+        args.extend(["-c", collection])
+    if no_rerank and mode == "query":
+        args.append("--no-rerank")
+    if no_gpu:
+        args.append("--no-gpu")
+    return args
 
 
 def validate_seed_card(payload: dict[str, Any]) -> dict[str, Any]:

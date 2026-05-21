@@ -3,7 +3,7 @@
 Use this sequence for a manual dream.
 
 1. Ask for a corpus path and its qmd collection name if the user did not provide them.
-2. Run `python3 <skill-dir>/scripts/daydream.py check --corpus <path>`.
+2. Run `python3 <skill-dir>/scripts/daydream.py check --corpus <path> --collection <name> --qmd-probe-query "<light semantic smoke query>"`. Add `--env-file <qmd.env>` when the host needs qmd runtime environment values.
 3. If qmd is unavailable, follow `fallback-without-qmd.md` before continuing.
 4. Run `python3 <skill-dir>/scripts/daydream.py pick-seed --corpus <path>` and read the selected document.
 5. Read `seed-card-format.md` and `../prompts/extract-seed-card.md`.

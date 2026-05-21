@@ -23,13 +23,23 @@ python3 <skill-dir>/scripts/daydream.py search --corpus <path> --collection <nam
 
 The search command refuses an unscoped qmd search by default. Use `--allow-cross-collection` only when the user explicitly wants to search the wider qmd index instead of the named corpus collection.
 
-On macOS, if the default qmd search path aborts inside Metal, stay on qmd and retry with qmd's CPU-only path:
+The bundled search command uses qmd-only recovery by default:
+
+1. try qmd hybrid `query`,
+2. retry qmd hybrid `query` with CPU forced,
+3. try qmd `vsearch` as the lighter vector-only path.
+
+This recovery stays inside qmd. It is not the degraded host-only fallback. Use `--recovery off` when debugging one qmd path explicitly.
+
+On macOS or servers with unstable GPU runtime, the host can also choose qmd's CPU-only path directly:
 
 ```bash
 python3 <skill-dir>/scripts/daydream.py search --corpus <path> --collection <name> --no-gpu "<semantic query>"
 ```
 
 This keeps qmd semantic retrieval in the dream while avoiding the local Metal path. It may run slower.
+
+Use `--env-file <qmd.env>` when search needs deployment-specific qmd environment values such as `PATH`, `QMD_FORCE_CPU`, or `HF_ENDPOINT`.
 
 Use `--limit <n>` when you need a specific retrieval batch size. Search more than once. Follow:
 
@@ -45,3 +55,5 @@ Treat `avoid_searching_for` as an exclusion list. Do not search those directions
 qmd order is retrieval evidence, not the final constellation rank. Read the material before deciding whether a connection survives.
 
 Send every meaningful non-topical connection that survives reading into ranking. Do not withhold one only because another route already looks sufficient for the article.
+
+Corpus size changes connection density. A small or narrow corpus plus strict topic-overlap rejection can produce only a few valid connections. Treat that as a coverage limit, not an automatic quality failure. A larger and more varied corpus usually gives qmd more chances to surface bridges, contrasts, and distant echoes.

@@ -26,7 +26,8 @@ Normal Daydream needs:
 1. a corpus directory for seed selection and source reading,
 2. the qmd collection name that represents that intended corpus,
 3. whether the dream is manual or scheduled,
-4. an output directory only when the default skill `output/` directory should be overridden.
+4. qmd runtime environment details when the host or scheduler needs them, such as `PATH`, `QMD_FORCE_CPU`, or `HF_ENDPOINT`,
+5. an output directory only when the default skill `output/` directory should be overridden.
 
 Do not treat a corpus path and a qmd collection as interchangeable. The corpus path bounds local seed handling. The qmd collection bounds normal semantic search.
 
@@ -70,6 +71,7 @@ Keep these rules explicit:
 - Use multiple semantic searches from the seed card. Do not collapse the whole card into one query or search only a topic label.
 - qmd order and scores are retrieval evidence. The host reads the material before deciding which connections survive ranking.
 - A host-only fallback is degraded output. Manual runs need explicit user permission; scheduled runs follow `no_qmd_policy` and default to failure.
+- Keep qmd recovery inside qmd first. The helper search command automatically retries the qmd query path on CPU and then a lighter qmd vector search before normal Daydream is considered blocked.
 
 ## Known Pitfalls And Recovery
 
@@ -84,7 +86,7 @@ Keep these rules explicit:
   `--no-gpu` is a qmd path, not a host-only fallback. It bypasses the local Metal path and may be slower, but qmd still performs the retrieval and ranking work for the dream. Keep reranking unless the user or qmd troubleshooting specifically calls for another experiment.
 - If CPU-only qmd still fails, do not silently replace qmd with host intuition. Tell the user that normal Daydream is blocked, report the qmd failure, and follow `references/fallback-without-qmd.md` only when the user explicitly accepts degraded output. Scheduled dreams should fail unless their configured `no_qmd_policy` explicitly allows continuation.
 - Daydream JSON validation is intentionally strict. When writing seed cards or constellations, compare fields and enum values against `templates/` before validation; invented `abstraction_level` or unsupported `preferred_strategy` values will be rejected.
-- The bundled `check` command only confirms qmd binary presence. It cannot predict whether the later qmd inference path will fail inside the local runtime or Metal stack. Before relying on scheduled dreams, run at least one real semantic-search smoke test on the target corpus when possible.
+- The bundled `check` command reports qmd binary presence by default. Presence is not readiness: a host or scheduler can still miss runtime environment, model access, or a working inference path. Before relying on scheduled dreams, run `check` with the target collection and `--qmd-probe-query` so it performs one real collection-scoped semantic-search smoke test.
 
 ## Progressive Disclosure
 

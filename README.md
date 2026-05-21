@@ -14,6 +14,8 @@ The distributable product is `skills/daydream/`. A host such as Hermes, OpenClaw
 - Python 3.11 or newer for the bundled helper script.
 - qmd for normal semantic search over the target corpus.
 
+Server and scheduled runs may also need qmd environment values such as `PATH`, `QMD_FORCE_CPU`, or `HF_ENDPOINT`. The helper accepts an env file on qmd-facing commands when the host needs an explicit runtime environment.
+
 ## What It Does
 
 A normal dream follows this shape:
@@ -25,6 +27,8 @@ A normal dream follows this shape:
 5. Write one article and save the JSON record of the seed and the JSON record of the constellation behind the article.
 
 Daydream is not a corpus-wide clustering system and not a keyword search wrapper. qmd is the normal search layer; the host does the reading, judgment, and writing.
+
+Connection density depends on the corpus. A small or narrow corpus plus strict rejection of surface-only overlap may produce only a few strong links. A larger and more varied corpus gives the dream more room to find bridges, contrasts, and distant echoes.
 
 ### Eligible Seed Documents
 
@@ -100,6 +104,8 @@ skills/daydream/
     article.md
     constellation.json
     seed-card.json
+  tests/
+    test_daydream.py
   output/
     .gitignore
     .gitkeep
@@ -144,6 +150,12 @@ skills/daydream/
 | `templates/seed-card.json` | The seed card template. It defines the JSON shape used to preserve the host's reading of the seed and to generate qmd search directions. |
 | `templates/constellation.json` | The constellation template. It defines the JSON shape for nodes, edges, ranked connections, and search coverage. |
 | `templates/article.md` | The minimal Markdown shell for the final article. |
+
+### Tests
+
+| Path | Purpose |
+| --- | --- |
+| `tests/test_daydream.py` | Focused checks for the helper script, including qmd probes, qmd env files, and qmd-only search recovery. |
 
 ### Generated Outputs
 
@@ -193,6 +205,16 @@ python3 <skill-dir>/scripts/daydream.py save-dream \
 
 The save step writes to `<skill-dir>/output/` unless the host provides another output directory.
 
+For a real qmd readiness check, pass the collection and one light probe query:
+
+```bash
+python3 <skill-dir>/scripts/daydream.py check \
+  --corpus /path/to/corpus \
+  --collection corpus-name \
+  --qmd-probe-query "semantic smoke test" \
+  --env-file /path/to/qmd.env
+```
+
 ## Common Edits
 
 Start here when you want to change Daydream instead of reading every file first.
@@ -224,6 +246,17 @@ Edit:
 - `scripts/daydream.py` only when the helper check or accepted `no_qmd_policy` values need to change.
 
 The scheduler itself belongs to the host. Daydream defines the recurring dream rules; Hermes, OpenClaw, Claude Code, Codex, or another host decides how to run them on time.
+
+### I Want To Change qmd Runtime Behavior
+
+Edit:
+
+- `references/qmd-setup.md` for collection setup and readiness checks.
+- `references/qmd-search.md` for qmd search and recovery behavior.
+- `references/cron.md` when the behavior matters specifically in scheduled runs.
+- `scripts/daydream.py` when changing the env-file input, qmd probe, or recovery order.
+
+The helper can pass qmd environment values from `--env-file`. That file is the practical place to define a scheduler-visible `PATH`, force CPU mode, or choose a model mirror when the host runtime needs it.
 
 ### I Want To Change What The Seed Card Searches
 
@@ -266,4 +299,4 @@ Use this map when modifying the skill:
 | Change article writing rules | `prompts/write-daydream-article.md`, `templates/article.md`, and `SKILL.md` when the contract changes |
 | Change output names or folder layout | `references/outputs.md`, `scripts/daydream.py`, and this `README.md` |
 
-When a JSON shape changes, update the template, the explanation, the prompt that writes it, and the helper validation that checks it. That keeps hosts and future edits from drifting apart.
+When a JSON shape changes, update the template, the explanation, the prompt that writes it, and the helper validation that checks it. When helper behavior changes, update `tests/test_daydream.py` with it. That keeps hosts and future edits from drifting apart.

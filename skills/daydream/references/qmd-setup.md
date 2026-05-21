@@ -15,4 +15,39 @@ For Daydream, the host should use that upstream guidance to:
 4. keep that collection name with the corpus path for Daydream searches,
 5. verify collection-scoped qmd search works before starting or scheduling dreams.
 
+Use qmd's path-first collection command shape:
+
+```bash
+qmd collection add /path/to/corpus --name corpus-name
+```
+
+The first positional argument is the corpus path. The collection name belongs after `--name`. Do not swap those roles when wiring Daydream, or qmd may index a path you did not mean to search. After collection setup, inspect it before dreaming:
+
+```bash
+qmd ls corpus-name
+python3 <skill-dir>/scripts/daydream.py check \
+  --corpus /path/to/corpus \
+  --collection corpus-name \
+  --qmd-probe-query "semantic smoke test"
+```
+
+If qmd needs deployment-specific environment values, pass them from the host or scheduler. The bundled helper accepts an env file for qmd-facing commands:
+
+```text
+# qmd.env
+PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin
+QMD_FORCE_CPU=1
+HF_ENDPOINT=https://hf-mirror.com
+```
+
+```bash
+python3 <skill-dir>/scripts/daydream.py check \
+  --corpus /path/to/corpus \
+  --collection corpus-name \
+  --qmd-probe-query "semantic smoke test" \
+  --env-file /path/to/qmd.env
+```
+
+Treat that probe as a runtime check, not just an install check. Finding a `qmd` binary does not prove that model access, device memory, or the scheduler environment is ready.
+
 Do not duplicate or guess changing qmd installation details here. Follow the upstream README for the user's platform and current qmd version.

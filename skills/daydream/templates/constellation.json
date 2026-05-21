@@ -1,0 +1,64 @@
+{
+  "graph_type": "daydream_constellation",
+  "article": {
+    "title": "Article title",
+    "path": "/path/to/output/article.md",
+    "thesis": "The core idea formed by the article."
+  },
+  "seed_document": {
+    "title": "Seed document title",
+    "path": "/path/to/seed-document.md",
+    "source_layer": "freeform source label, such as notes, essays, bookmarks, hermes, openclaw, etc."
+  },
+  "nodes": [
+    {
+      "id": "seed-doc",
+      "type": "document",
+      "title": "Seed document title",
+      "path": "/path/to/seed-document.md",
+      "source_layer": "notes",
+      "role": "seed"
+    },
+    {
+      "id": "concept-a",
+      "type": "concept",
+      "label": "Concept label",
+      "meaning": "What this concept means in the current dream.",
+      "abstraction_level": "mechanism"
+    }
+  ],
+  "edges": [
+    {
+      "from": "seed-doc",
+      "to": "concept-a",
+      "type": "expresses",
+      "strength": 0.75,
+      "reason": "Why this edge belongs in the constellation.",
+      "evidence": [
+        "Short corpus-grounded support for this edge."
+      ]
+    }
+  ],
+  "ranked_connections": [
+    {
+      "rank": 1,
+      "from_node": "seed-doc",
+      "to_node": "concept-a",
+      "strength": 0.75,
+      "connection_name": "Connection name",
+      "connection_kind": "mechanism_match",
+      "why_it_matters": "Why the article needs this connection.",
+      "why_not_topic_overlap": "Why this is more than surface similarity.",
+      "used_in_article_section": "Section title or paragraph summary.",
+      "documents_involved": [
+        "seed-doc"
+      ]
+    }
+  ],
+  "search_coverage": {
+    "connection_count": 1,
+    "documents_considered": 1,
+    "documents_used": 1,
+    "notes": "Overall search and connection note for this dream."
+  }
+}

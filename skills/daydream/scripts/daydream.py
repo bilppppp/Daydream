@@ -440,7 +440,7 @@ def write_json(path: Path, payload: Any) -> None:
 
 
 def slugify(value: str, fallback: str = "untitled") -> str:
-    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", value.strip()).strip("-._")
+    slug = re.sub(r"[^\w._-]+", "-", value.strip(), flags=re.UNICODE).strip("-._")
     return slug.lower() or fallback
 
 

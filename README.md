@@ -159,7 +159,7 @@ skills/daydream/output/
 
 | Output | Purpose |
 | --- | --- |
-| `*.md` | The readable article produced by the dream. |
+| `*.md` | The readable article produced by the dream, ending with a compact list of the documents and concepts that actually participated in the writing. |
 | `*.seed-card.json` | The saved seed card for that run. It records what the seed meant before the search expanded outward. |
 | `*.constellation.json` | The saved connection map for that run. It records the accepted ranked connections, their strength, the involved documents, and how the article used them. |
 | `output/.gitignore` | Keeps generated dream folders out of the distributed skill package. |
@@ -202,7 +202,7 @@ Start here when you want to change Daydream instead of reading every file first.
 Edit:
 
 - `prompts/write-daydream-article.md` for the writing instruction itself.
-- `templates/article.md` when you want to change the starting article shape.
+- `templates/article.md` when you want to change the starting article shape or the fixed article appendix.
 - `SKILL.md` only when the promise or hard rule of the article changes, not for ordinary style tuning.
 
 ### I Want To Limit How Many Linked Documents A Dream Uses

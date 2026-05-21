@@ -2,6 +2,8 @@
 
 Save one article and two JSON companions for each completed dream.
 
+The article ends with a compact `Participating Documents And Concepts` appendix that lists the seed and linked documents actually used in the writing plus the concepts each document contributed. Keep broader accepted-but-unused connections in the constellation JSON instead of padding the article appendix.
+
 Default output names:
 
 ```text

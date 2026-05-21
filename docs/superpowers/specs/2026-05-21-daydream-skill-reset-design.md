@@ -255,7 +255,7 @@ The host should issue multiple semantic searches from the dream seed card instea
 5. distant echoes that can move the article somewhere non-obvious,
 6. contrasts that sharpen the article.
 
-Search should avoid directions recorded in `avoid_searching_for`.
+Search should treat directions recorded in `avoid_searching_for` as exclusions. They are filtering guardrails against topic-only drift, not inputs for a later search or constellation nodes.
 
 qmd rank is retrieval evidence, not final constellation rank. The host decides which connections survive into the article and graph after reading the material.
 
@@ -280,6 +280,8 @@ First-version connection kinds are:
 5. `distant_echo`
 6. `contrast`
 
+qmd may return topic-only overlap during retrieval. Ranking must remove it before the article and constellation are written.
+
 ## 11. Article
 
 The article is saved as Markdown.
@@ -293,11 +295,13 @@ The writing prompt should forbid:
 3. presenting a citation inventory instead of an idea,
 4. forcing every connection into a tidy equivalence.
 
+After drafting, the host should run a seed alignment check against the seed-card `core_claim` and `evidence_spans`. The article must be revised if its associative movement overstates, reverses, or distorts the seed.
+
 ## 12. Constellation
 
 The constellation is saved as JSON. It is an output of the current dream, not persistent memory for future dreams.
 
-It should describe the concept network formed by the article. The seed document remains the starting point, but retrieved documents and concepts may connect to one another.
+It should describe the concept network formed by the article. The seed document remains the starting point, but retrieved documents, concepts, tensions, and dream questions may connect to one another.
 
 The first-version shape is:
 
@@ -329,6 +333,18 @@ The first-version shape is:
       "label": "Concept label",
       "meaning": "What this concept means in the current dream",
       "abstraction_level": "surface | mechanism | meta"
+    },
+    {
+      "id": "tension-displaced-judgment",
+      "type": "tension",
+      "description": "Conflict, contradiction, or dilemma that drives the dream",
+      "why_it_matters": "Why this tension activates a bridge or distant echo"
+    },
+    {
+      "id": "question-where-else",
+      "type": "question",
+      "question": "Question that sent the dream back into the corpus",
+      "preferred_strategy": "random_collision | tag_bridge | temporal_bridge | same_problem_different_domain"
     }
   ],
   "edges": [

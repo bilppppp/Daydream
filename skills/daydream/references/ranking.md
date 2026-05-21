@@ -20,3 +20,5 @@ Allowed connection kinds:
 - `contrast`
 
 Keep as many meaningful final connections as the dream needs. Exclude results that stay topical or never enter the final article network.
+
+Topic-only overlap may appear during qmd retrieval. Drop it here. It must not enter the article or the constellation JSON.

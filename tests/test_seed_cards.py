@@ -151,6 +151,61 @@ class SeedCardSchemaTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unknown node"):
             validate_constellation(payload)
 
+    def test_constellation_accepts_tension_and_question_nodes(self):
+        payload = valid_constellation()
+        payload["nodes"].extend(
+            [
+                {
+                    "id": "tension-a",
+                    "type": "tension",
+                    "description": "Automation reduces judgment while claiming to improve it.",
+                    "why_it_matters": "It activates a bridge search for displaced judgment.",
+                },
+                {
+                    "id": "question-a",
+                    "type": "question",
+                    "question": "Where else does delegated judgment hide its own loss?",
+                    "preferred_strategy": "same_problem_different_domain",
+                },
+            ]
+        )
+        payload["edges"].extend(
+            [
+                {
+                    "from": "tension-a",
+                    "to": "question-a",
+                    "type": "activates",
+                    "strength": 0.7,
+                    "reason": "The tension becomes the search question.",
+                    "evidence": ["Automation vs judgment."],
+                },
+                {
+                    "from": "question-a",
+                    "to": "concept-a",
+                    "type": "bridges",
+                    "strength": 0.6,
+                    "reason": "The question returned a mechanism echo.",
+                    "evidence": ["Where else does legibility restore control?"],
+                },
+            ]
+        )
+
+        self.assertEqual(validate_constellation(payload)["nodes"][-1]["type"], "question")
+
+    def test_constellation_rejects_question_node_with_unknown_strategy(self):
+        payload = valid_constellation()
+        payload["nodes"].append(
+            {
+                "id": "question-a",
+                "type": "question",
+                "question": "Where does this recur?",
+                "preferred_strategy": "guess",
+            }
+        )
+
+        with self.assertRaisesRegex(ValueError, "preferred_strategy"):
+            validate_constellation(payload)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -14,3 +14,5 @@ For each ranked connection, decide:
 Prefer connections that move thought forward: a mechanism discovered in another domain, a failure rhyme, a bridge between two far ideas, or a contrast that makes the article sharper.
 
 Do not keep a connection only because qmd ranked it highly.
+
+Topic-only overlap can appear in search results. Remove it here so it does not enter the article or constellation JSON.

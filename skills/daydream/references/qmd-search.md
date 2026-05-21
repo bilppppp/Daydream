@@ -28,6 +28,6 @@ Use `--collection <name>` only when the qmd setup requires a named collection. U
 - distant echoes that change the article,
 - contrasts that sharpen the claim.
 
-Avoid the directions listed in `avoid_searching_for`.
+Treat `avoid_searching_for` as an exclusion list. Do not search those directions, do not use them as branches for a later search, and do not let them become constellation nodes.
 
 qmd order is retrieval evidence, not the final constellation rank. Read the material before deciding whether a connection survives.

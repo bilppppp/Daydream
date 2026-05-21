@@ -4,7 +4,14 @@ The constellation is JSON. It records the concept network formed by the article.
 
 Use `../templates/constellation.json` as the shape.
 
-The graph may contain document nodes and concept nodes. The seed is the starting document, but retrieved documents and concepts may connect to one another when the article uses that connection.
+The graph may contain:
+
+- `document` nodes for the seed and used sources,
+- `concept` nodes for ideas that survive into the article,
+- `tension` nodes for conflicts or dilemmas that bridge the dream,
+- `question` nodes for dream questions and their preferred search strategy.
+
+The seed is the starting document, but retrieved documents, concepts, tensions, and questions may connect to one another when the article uses that connection.
 
 Each edge must include:
 

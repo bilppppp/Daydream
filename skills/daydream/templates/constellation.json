@@ -25,6 +25,18 @@
       "label": "Concept label",
       "meaning": "What this concept means in the current dream.",
       "abstraction_level": "mechanism"
+    },
+    {
+      "id": "tension-a",
+      "type": "tension",
+      "description": "Conflict, contradiction, or dilemma that drives the dream.",
+      "why_it_matters": "Why this tension activates a bridge or distant echo."
+    },
+    {
+      "id": "question-a",
+      "type": "question",
+      "question": "Question that sent the dream back into the corpus.",
+      "preferred_strategy": "same_problem_different_domain"
     }
   ],
   "edges": [
@@ -36,6 +48,16 @@
       "reason": "Why this edge belongs in the constellation.",
       "evidence": [
         "Short corpus-grounded support for this edge."
+      ]
+    },
+    {
+      "from": "tension-a",
+      "to": "question-a",
+      "type": "activates",
+      "strength": 0.7,
+      "reason": "Why this tension becomes a dream question.",
+      "evidence": [
+        "Short support from the seed or connected material."
       ]
     }
   ],

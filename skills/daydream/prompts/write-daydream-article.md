@@ -12,3 +12,5 @@ Rules:
 - Do not force every connection into equivalence. Contrasts and partial echoes are allowed.
 - Use enough source material to support the thought you are forming.
 - Keep the central idea visible even while the article wanders.
+
+After drafting, perform a seed alignment check. Compare the way the article uses the seed against the seed card `core_claim` and `evidence_spans`. Revise if the article overstates, reverses, or distorts the seed while chasing distant echoes.

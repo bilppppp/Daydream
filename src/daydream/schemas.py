@@ -119,8 +119,14 @@ def validate_constellation(payload: dict[str, Any]) -> dict[str, Any]:
             _require_object_fields(node, "concept node", {"label", "meaning", "abstraction_level"})
             if node["abstraction_level"] not in ABSTRACTION_LEVELS:
                 raise ValueError("concept node abstraction_level must be surface, mechanism, or meta")
+        elif node["type"] == "tension":
+            _require_object_fields(node, "tension node", {"description", "why_it_matters"})
+        elif node["type"] == "question":
+            _require_object_fields(node, "question node", {"question", "preferred_strategy"})
+            if node["preferred_strategy"] not in DREAM_STRATEGIES:
+                raise ValueError("question node preferred_strategy is unsupported")
         else:
-            raise ValueError("nodes item type must be document or concept")
+            raise ValueError("nodes item type must be document, concept, tension, or question")
 
     for edge in payload["edges"]:
         _require_object_fields(edge, "edges item", {"from", "to", "type", "strength", "reason", "evidence"})

@@ -28,7 +28,14 @@ class DaydreamSkillAssetTests(unittest.TestCase):
         self.assertEqual(seed_template["card_type"], "dream_seed_card")
         self.assertIn("why_not_topic_overlap", graph_text)
         self.assertIn("used_in_article_section", graph_text)
+        self.assertIn('"type": "tension"', graph_text)
+        self.assertIn('"type": "question"', graph_text)
         self.assertIn(".seed-card.json", (skill / "references/outputs.md").read_text(encoding="utf-8"))
+
+    def test_dream_flow_requires_seed_alignment_check_after_writing(self):
+        flow = (Path("skills/daydream") / "references/dream-flow.md").read_text(encoding="utf-8").lower()
+
+        self.assertIn("seed alignment check", flow)
 
 
 if __name__ == "__main__":

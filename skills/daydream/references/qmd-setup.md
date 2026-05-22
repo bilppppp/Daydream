@@ -15,6 +15,10 @@ For Daydream, the host should use that upstream guidance to:
 4. keep that collection name with the corpus path for Daydream searches,
 5. verify collection-scoped qmd search works before starting or scheduling dreams.
 
+qmd uses Markdown for the normal Daydream corpus path. If the corpus contains `.txt` files, rename their suffixes to `.md` before qmd corpus setup.
+
+If the corpus contains `.doc` or `.docx` files, ask the user whether to convert them to Markdown before including them in the dream corpus.
+
 Use qmd's path-first collection command shape:
 
 ```bash

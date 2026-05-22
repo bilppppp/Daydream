@@ -67,6 +67,8 @@ Read `references/qmd-setup.md` when the user needs qmd setup guidance. Read `ref
 
 Keep these rules explicit:
 
+- qmd uses Markdown for the normal Daydream corpus path. If the corpus contains `.txt` files, rename their suffixes to `.md` before qmd corpus setup.
+- If the corpus contains `.doc` or `.docx` files, ask the user whether to convert them to Markdown before including them in the dream corpus.
 - Search the user's intended qmd collection. `--corpus` alone is not a qmd result filter.
 - Use multiple semantic searches from the seed card. Do not collapse the whole card into one query or search only a topic label.
 - qmd order and scores are retrieval evidence. The host reads the material before deciding which connections survive ranking.

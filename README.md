@@ -16,6 +16,10 @@ The distributable product is `skills/daydream/`. A host such as Hermes, OpenClaw
 
 Server and scheduled runs may also need qmd environment values such as `PATH`, `QMD_FORCE_CPU`, or `HF_ENDPOINT`. The helper accepts an env file on qmd-facing commands when the host needs an explicit runtime environment.
 
+qmd uses Markdown for the normal Daydream corpus path. If the corpus contains `.txt` files, rename their suffixes to `.md` before qmd corpus setup.
+
+If the corpus contains `.doc` or `.docx` files, ask the user whether to convert them to Markdown before including them in the dream corpus.
+
 ## What It Does
 
 A normal dream follows this shape:

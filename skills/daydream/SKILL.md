@@ -49,15 +49,24 @@ python3 <skill-dir>/scripts/daydream.py --help
 ## Core Workflow
 
 1. Get the corpus path and qmd collection name. For scheduled dreams, also resolve `no_qmd_policy`.
-2. Check the corpus and qmd readiness, then randomly select one eligible seed document.
-3. Read the seed and create a JSON seed card that matches the template.
-4. Expand the seed card into multiple qmd hybrid searches inside the named collection. Search from concepts, mechanisms, failure modes, tensions, claims, and dream questions rather than one surface topic.
-5. Read retrieved material. Drop directions in `avoid_searching_for` and reject results that stay at topic-only overlap.
-6. Rank every meaningful surviving connection. The constellation keeps the accepted ranked set even when the article uses only a subset.
-7. Write the article, then check that its treatment of the seed still aligns with the seed card `core_claim` and `evidence_spans`.
-8. Validate and save the Markdown article, JSON seed card, and JSON constellation together under one completion-time and keyword folder.
+2. Start a run ledger row with `runs start` so failures and cancellations remain discoverable.
+3. Check the corpus and qmd readiness, then randomly select one eligible seed document.
+4. Read the seed and create a JSON seed card that matches the template.
+5. Expand the seed card into multiple qmd hybrid searches inside the named collection. Search from concepts, mechanisms, failure modes, tensions, claims, and dream questions rather than one surface topic.
+6. Read retrieved material. Drop directions in `avoid_searching_for` and reject results that stay at topic-only overlap.
+7. Rank every meaningful surviving connection. The constellation keeps the accepted ranked set even when the article uses only a subset.
+8. Write the article, then check that its treatment of the seed still aligns with the seed card `core_claim` and `evidence_spans`.
+9. Validate and save the Markdown article, JSON seed card, and JSON constellation together under one completion-time and keyword folder, using the run id when one was started.
 
 Read `references/dream-flow.md` before executing the full sequence.
+
+## Run Ledger
+
+The helper keeps a fixed CSV run ledger at `<skill-dir>/output/daydream-runs.csv`. This is a run index, not a dream artifact and not a semantic log.
+
+The ledger only helps hosts discover runs and the saved three-file paths. Keep it to these fields: `run_id`, `started_at`, `ended_at`, `status`, `trigger`, `dream_dir`, `article_path`, `seed_card_path`, and `constellation_path`.
+
+Do not write dream summaries, weather, year rings, anti-dream notes, seed paths, corpus paths, qmd collection names, error types, or error messages into the CSV. A host that wants to read a completed dream should call `runs list --status success --limit <n> --json`, then read the article, seed card, and constellation paths from that result.
 
 ## qmd Contract
 
@@ -109,7 +118,8 @@ Keep these rules explicit:
 - Do not drop useful connections only to save tokens.
 - Keep every connection that survives reading and anti-overlap filtering in the ranked constellation. The article may use a subset.
 - Treat `avoid_searching_for` as blocked branch directions, not prompts for later search.
-- Save each completed dream in its own completion-time and keyword folder under `output/`; keep its article, seed card, and constellation together.
+- Save each completed dream in its own completion-time and keyword folder under `output/`; when a run id was started, include that run id in the final folder name. Keep its article, seed card, and constellation together.
+- Record run status in the fixed CSV ledger, but do not treat that ledger as a fourth content artifact.
 - Do not build a corpus-wide cluster system before writing.
 - Do not narrate the Daydream pipeline inside the article.
-- The bundled helper script selects seeds, checks readiness, runs qmd search, validates JSON, and saves outputs. You do the reading, judgment, ranking, and writing.
+- The bundled helper script selects seeds, checks readiness, runs qmd search, validates JSON, saves outputs, and maintains the run ledger. You do the reading, judgment, ranking, and writing.

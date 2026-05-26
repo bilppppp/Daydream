@@ -2,6 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import csv
+import fcntl
+import hashlib
 import json
 import os
 import random
@@ -16,6 +20,20 @@ from typing import Any, Callable
 TEXT_SUFFIXES = {".md", ".markdown", ".txt"}
 NO_QMD_POLICIES = {"fail", "warn_and_continue", "continue_silent"}
 QMD_RECOVERY_POLICIES = {"auto", "off"}
+RUN_LEDGER_FIELDS = [
+    "run_id",
+    "started_at",
+    "ended_at",
+    "status",
+    "trigger",
+    "dream_dir",
+    "article_path",
+    "seed_card_path",
+    "constellation_path",
+]
+RUN_STATUSES = {"running", "success", "failed", "cancelled"}
+RUN_FINISH_STATUSES = {"success", "failed", "cancelled"}
+RUN_TRIGGERS = {"manual", "cron", "host", "unknown"}
 SEED_CARD_REQUIRED = {
     "card_type",
     "seed_document",
@@ -116,6 +134,23 @@ def build_parser() -> argparse.ArgumentParser:
     save.add_argument("--constellation", required=True)
     save.add_argument("--keywords", required=True)
     save.add_argument("--output-dir")
+    save.add_argument("--run-id")
+
+    runs = sub.add_parser("runs")
+    runs_sub = runs.add_subparsers(dest="runs_command", required=True)
+
+    runs_start = runs_sub.add_parser("start")
+    runs_start.add_argument("--trigger", choices=sorted(RUN_TRIGGERS), default="manual")
+    runs_start.add_argument("--output-dir")
+
+    runs_finish = runs_sub.add_parser("finish")
+    runs_finish.add_argument("--run-id", required=True)
+    runs_finish.add_argument("--status", choices=sorted(RUN_FINISH_STATUSES), required=True)
+
+    runs_list = runs_sub.add_parser("list")
+    runs_list.add_argument("--status", choices=sorted(RUN_STATUSES))
+    runs_list.add_argument("--limit", type=int)
+    runs_list.add_argument("--json", action="store_true")
     return parser
 
 
@@ -156,17 +191,118 @@ def dispatch(args: argparse.Namespace) -> Any:
         return {"valid": "constellation", "path": str(Path(args.input))}
     if args.command == "save-dream":
         return save_dream_outputs(
-            output_dir=Path(args.output_dir) if args.output_dir else default_output_dir(),
+            output_dir=Path(args.output_dir) if args.output_dir else None,
             article_path=Path(args.article),
             seed_card_path=Path(args.seed_card),
             constellation_path=Path(args.constellation),
             keywords=args.keywords,
+            run_id=args.run_id,
         )
+    if args.command == "runs":
+        if args.runs_command == "start":
+            return start_run(
+                trigger=args.trigger,
+                output_dir=Path(args.output_dir) if args.output_dir else None,
+            )
+        if args.runs_command == "finish":
+            return finish_run(args.run_id, args.status)
+        if args.runs_command == "list":
+            return list_runs(status=args.status, limit=args.limit)
     raise ValueError(f"Unknown command: {args.command}")
 
 
+def skill_dir() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
 def default_output_dir() -> Path:
-    return Path(__file__).resolve().parents[1] / "output"
+    return skill_dir() / "output"
+
+
+def default_ledger_path() -> Path:
+    return default_output_dir() / "daydream-runs.csv"
+
+
+def start_run(
+    *,
+    trigger: str = "manual",
+    output_dir: Path | None = None,
+    ledger_path: Path | None = None,
+    started_at: datetime | None = None,
+    run_id: str | None = None,
+) -> dict[str, str]:
+    if trigger not in RUN_TRIGGERS:
+        raise ValueError("trigger must be manual, cron, host, or unknown")
+
+    started_at_text = _iso_time(started_at)
+    run_id = run_id or _generate_run_id(started_at_text)
+    output_root = ensure_dir(output_dir or default_output_dir())
+    paths = _paths_for_run(output_root, f"{_stamp_from_iso(started_at_text)}-{run_id}")
+    row = {
+        "run_id": run_id,
+        "started_at": started_at_text,
+        "ended_at": "",
+        "status": "running",
+        "trigger": trigger,
+        **paths,
+    }
+    _append_ledger_row(ledger_path or default_ledger_path(), row)
+    return {"run_id": run_id, **paths}
+
+
+def finish_run(
+    run_id: str,
+    status: str,
+    *,
+    ledger_path: Path | None = None,
+    ended_at: datetime | None = None,
+    path_updates: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    if status not in RUN_FINISH_STATUSES:
+        raise ValueError("status must be success, failed, or cancelled")
+
+    ledger = ledger_path or default_ledger_path()
+    with _ledger_lock(ledger):
+        rows = _read_ledger_rows(ledger)
+        found = False
+        updated_row: dict[str, str] | None = None
+        for row in rows:
+            if row["run_id"] != run_id:
+                continue
+            found = True
+            row["status"] = status
+            row["ended_at"] = _iso_time(ended_at)
+            if path_updates:
+                for field in ("dream_dir", "article_path", "seed_card_path", "constellation_path"):
+                    if field in path_updates:
+                        row[field] = str(path_updates[field])
+            updated_row = row
+            break
+        if not found or updated_row is None:
+            raise ValueError(f"Run id not found in ledger: {run_id}")
+
+        _write_ledger_rows(ledger, rows)
+    return {"run": updated_row}
+
+
+def list_runs(
+    *,
+    status: str | None = None,
+    limit: int | None = None,
+    ledger_path: Path | None = None,
+) -> dict[str, list[dict[str, str]]]:
+    if status is not None and status not in RUN_STATUSES:
+        raise ValueError("status must be running, success, failed, or cancelled")
+    if limit is not None and limit < 0:
+        raise ValueError("limit must not be negative")
+
+    rows = _read_ledger_rows(ledger_path or default_ledger_path())
+    if status is not None:
+        rows = [row for row in rows if row["status"] == status]
+    rows.sort(key=lambda row: _started_sort_value(row["started_at"]), reverse=True)
+    if limit is not None:
+        rows = rows[:limit]
+    return {"runs": rows}
 
 
 def check_corpus(
@@ -515,20 +651,31 @@ def validate_constellation(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def save_dream_outputs(
-    output_dir: Path,
+    output_dir: Path | None,
     article_path: Path,
     seed_card_path: Path,
     constellation_path: Path,
     keywords: str,
     completed_at: datetime | None = None,
+    run_id: str | None = None,
+    ledger_path: Path | None = None,
 ) -> dict[str, str]:
     article = article_path.read_text(encoding="utf-8")
     seed_card = validate_seed_card(read_json(seed_card_path))
     constellation = validate_constellation(read_json(constellation_path))
 
-    stamp = (completed_at or datetime.now()).strftime("%Y%m%d-%H%M%S")
-    prefix = f"{stamp}-{slugify(keywords)}"
-    dream_dir = ensure_dir(ensure_dir(output_dir) / prefix)
+    ledger = ledger_path or default_ledger_path()
+    if run_id:
+        run_row = _find_ledger_row(ledger, run_id)
+        output_root = output_dir if output_dir else Path(run_row["dream_dir"]).parent
+        prefix = f"{_stamp_from_iso(run_row['started_at'])}-{slugify(keywords)}-{run_id}"
+    else:
+        completed_time = completed_at or datetime.now().astimezone()
+        ended_at_text = _iso_time(completed_time)
+        output_root = output_dir or default_output_dir()
+        prefix = f"{_stamp_from_iso(ended_at_text)}-{slugify(keywords)}"
+
+    dream_dir = ensure_dir(ensure_dir(output_root) / prefix)
     article_out = dream_dir / f"{prefix}.md"
     seed_out = dream_dir / f"{prefix}.seed-card.json"
     constellation_out = dream_dir / f"{prefix}.constellation.json"
@@ -536,13 +683,29 @@ def save_dream_outputs(
     article_out.write_text(article, encoding="utf-8")
     write_json(seed_out, seed_card)
     write_json(constellation_out, constellation)
-    return {
+    result = {
         "article": str(article_out),
         "seed_card": str(seed_out),
         "constellation": str(constellation_out),
         "prefix": prefix,
         "dream_dir": str(dream_dir),
     }
+    ledger_paths = {
+        "dream_dir": str(dream_dir),
+        "article_path": str(article_out),
+        "seed_card_path": str(seed_out),
+        "constellation_path": str(constellation_out),
+    }
+    if run_id:
+        finish_run(run_id, "success", ledger_path=ledger, path_updates=ledger_paths)
+    else:
+        _append_success_ledger_row(
+            ledger,
+            started_at=ended_at_text,
+            ended_at=ended_at_text,
+            paths=ledger_paths,
+        )
+    return result
 
 
 def ensure_dir(path: Path) -> Path:
@@ -561,6 +724,115 @@ def read_json(path: Path) -> dict[str, Any]:
 def write_json(path: Path, payload: Any) -> None:
     ensure_dir(path.parent)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _paths_for_run(output_root: Path, prefix: str) -> dict[str, str]:
+    dream_dir = output_root / prefix
+    return {
+        "dream_dir": str(dream_dir),
+        "article_path": str(dream_dir / f"{prefix}.md"),
+        "seed_card_path": str(dream_dir / f"{prefix}.seed-card.json"),
+        "constellation_path": str(dream_dir / f"{prefix}.constellation.json"),
+    }
+
+
+def _append_success_ledger_row(
+    ledger_path: Path,
+    *,
+    started_at: str,
+    ended_at: str,
+    paths: dict[str, str],
+) -> None:
+    _append_ledger_row(
+        ledger_path,
+        {
+            "run_id": _generate_run_id(started_at),
+            "started_at": started_at,
+            "ended_at": ended_at,
+            "status": "success",
+            "trigger": "manual",
+            **paths,
+        },
+    )
+
+
+def _append_ledger_row(ledger_path: Path, row: dict[str, str]) -> None:
+    with _ledger_lock(ledger_path):
+        rows = _read_ledger_rows(ledger_path)
+        if any(existing["run_id"] == row["run_id"] for existing in rows):
+            raise ValueError(f"Run id already exists in ledger: {row['run_id']}")
+        rows.append(_normalize_ledger_row(row))
+        _write_ledger_rows(ledger_path, rows)
+
+
+@contextlib.contextmanager
+def _ledger_lock(ledger_path: Path) -> Any:
+    ensure_dir(ledger_path.parent)
+    lock_path = ledger_path.with_name(f".{ledger_path.name}.lock")
+    with lock_path.open("w", encoding="utf-8") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+
+
+def _find_ledger_row(ledger_path: Path, run_id: str) -> dict[str, str]:
+    for row in _read_ledger_rows(ledger_path):
+        if row["run_id"] == run_id:
+            return row
+    raise ValueError(f"Run id not found in ledger: {run_id}")
+
+
+def _read_ledger_rows(ledger_path: Path) -> list[dict[str, str]]:
+    if not ledger_path.exists():
+        return []
+    with ledger_path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        if reader.fieldnames != RUN_LEDGER_FIELDS:
+            raise ValueError(f"Run ledger has unexpected fields: {ledger_path}")
+        return [_normalize_ledger_row(row) for row in reader]
+
+
+def _write_ledger_rows(ledger_path: Path, rows: list[dict[str, str]]) -> None:
+    ensure_dir(ledger_path.parent)
+    temp_path = ledger_path.with_name(f".{ledger_path.name}.tmp")
+    with temp_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=RUN_LEDGER_FIELDS)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(_normalize_ledger_row(row))
+    os.replace(temp_path, ledger_path)
+
+
+def _normalize_ledger_row(row: dict[str, Any]) -> dict[str, str]:
+    return {field: str(row.get(field, "")) for field in RUN_LEDGER_FIELDS}
+
+
+def _generate_run_id(seed: str) -> str:
+    raw = f"{seed}|{os.getpid()}|{random.getrandbits(128)}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def _iso_time(value: datetime | None = None) -> str:
+    timestamp = value or datetime.now().astimezone()
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.astimezone()
+    return timestamp.isoformat(timespec="seconds")
+
+
+def _stamp_from_iso(value: str) -> str:
+    try:
+        return datetime.fromisoformat(value).strftime("%Y%m%d-%H%M%S")
+    except ValueError:
+        return datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")
+
+
+def _started_sort_value(value: str) -> float:
+    try:
+        return datetime.fromisoformat(value).timestamp()
+    except ValueError:
+        return 0.0
 
 
 def slugify(value: str, fallback: str = "untitled") -> str:

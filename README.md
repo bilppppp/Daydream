@@ -58,6 +58,7 @@ flowchart TD
     package --> prompts["prompts/<br/>task prompts for the host"]
     package --> templates["templates/<br/>expected output shapes"]
     package --> output["output/<br/>completed dream folders"]
+    package --> ledger["output/daydream-runs.csv<br/>run ledger"]
 
     corpus["user corpus path"] --> script
     qmd["qmd collection"] --> script
@@ -80,6 +81,7 @@ flowchart TD
     article --> output
     seedcard --> output
     constellation --> output
+    script --> ledger
 ```
 
 The package layout is:
@@ -92,6 +94,7 @@ skills/daydream/
   references/
     constellation-format.md
     cron.md
+    cron-linux-setup.md
     dream-flow.md
     fallback-without-qmd.md
     outputs.md
@@ -122,7 +125,7 @@ skills/daydream/
 | Path | Purpose |
 | --- | --- |
 | `skills/daydream/SKILL.md` | The main instruction file that tells a host when Daydream applies, what a normal dream requires, which rules cannot be skipped, and which deeper file to read at each stage. |
-| `skills/daydream/scripts/daydream.py` | The helper for repeatable work: check a corpus, choose an eligible random seed, call qmd search with the requested scope, validate Daydream JSON, and save linked outputs into one folder. |
+| `skills/daydream/scripts/daydream.py` | The helper for repeatable work: check a corpus, choose an eligible random seed, call qmd search with the requested scope, validate Daydream JSON, save linked outputs into one folder, and maintain the run ledger. |
 
 ### Reference Documents
 
@@ -137,6 +140,7 @@ skills/daydream/
 | `references/qmd-setup.md` | What qmd is, where to find its setup guidance, and what the host should check before using it. |
 | `references/fallback-without-qmd.md` | The degraded path when qmd is unavailable and the user or schedule policy allows continuation. |
 | `references/cron.md` | The extra rules for scheduled dreams, including the no-qmd policy. |
+| `references/cron-linux-setup.md` | Linux cron setup checks for hosts that schedule Daydream from a non-interactive Linux runtime. |
 
 ### Prompts
 
@@ -167,19 +171,25 @@ Each completed dream is saved as one folder:
 
 ```text
 skills/daydream/output/
+  daydream-runs.csv
   YYYYMMDD-HHMMSS-keywords/
     YYYYMMDD-HHMMSS-keywords.md
     YYYYMMDD-HHMMSS-keywords.seed-card.json
     YYYYMMDD-HHMMSS-keywords.constellation.json
 ```
 
+When a run was started with `runs start`, the final saved folder is `YYYYMMDD-HHMMSS-keywords-run_id/`. Calls that skip `--run-id` keep the older `YYYYMMDD-HHMMSS-keywords/` shape.
+
 | Output | Purpose |
 | --- | --- |
 | `*.md` | The readable article produced by the dream, ending with a compact list of the documents and concepts that actually participated in the writing. |
 | `*.seed-card.json` | The saved seed card for that run. It records what the seed meant before the search expanded outward. |
 | `*.constellation.json` | The saved connection map for that run. It records the accepted ranked connections, their strength, the involved documents, and how the article used them. |
+| `daydream-runs.csv` | A fixed run ledger for hosts to find recent runs and the three saved paths. It is not an extra dream content artifact. |
 | `output/.gitignore` | Keeps generated dream folders out of the distributed skill package. |
 | `output/.gitkeep` | Keeps the default output directory present in the package before any dream has run. |
+
+The content contract is still three files per completed dream. The CSV belongs to the run layer only and should not contain dream summaries, seed paths, corpus paths, qmd collection names, error messages, or other semantic notes.
 
 ## How The Main JSON Files Differ
 
@@ -195,6 +205,7 @@ The two JSON files answer different questions:
 Ask the host to use Daydream with a corpus path and the qmd collection name for that corpus. Resolve `<skill-dir>` to the installed `skills/daydream/` directory:
 
 ```bash
+python3 <skill-dir>/scripts/daydream.py runs start --trigger manual
 python3 <skill-dir>/scripts/daydream.py check --corpus /path/to/corpus
 python3 <skill-dir>/scripts/daydream.py pick-seed --corpus /path/to/corpus
 python3 <skill-dir>/scripts/daydream.py search --corpus /path/to/corpus --collection corpus-name "semantic search text from the seed card"
@@ -204,10 +215,19 @@ python3 <skill-dir>/scripts/daydream.py save-dream \
   --article /path/to/article.md \
   --seed-card /path/to/seed-card.json \
   --constellation /path/to/constellation.json \
-  --keywords "memory feedback"
+  --keywords "memory feedback" \
+  --run-id <run_id>
 ```
 
-The save step writes to `<skill-dir>/output/` unless the host provides another output directory.
+The save step writes to `<skill-dir>/output/` unless the host provides another output directory. `runs start` first creates a `running` CSV row with a planned path. `save-dream --run-id` saves into a final folder named with the start time, keywords, and run id, then updates that same row to `success`.
+
+Older calls to `save-dream` without `--run-id` still use the original time-and-keywords folder name. They also append a `success` row to `skills/daydream/output/daydream-runs.csv`, so hosts can discover those runs too.
+
+To get recent completed runs without scanning folders:
+
+```bash
+python3 <skill-dir>/scripts/daydream.py runs list --status success --limit 5 --json
+```
 
 For a real qmd readiness check, pass the collection and one light probe query:
 
@@ -245,6 +265,7 @@ If you want a token-conscious mode such as “use at most N linked documents” 
 Edit:
 
 - `references/cron.md` for what a scheduled dream needs and what the scheduled prompt should carry.
+- `references/cron-linux-setup.md` when the scheduled host runs Daydream through Linux cron.
 - `references/fallback-without-qmd.md` when changing what a scheduled run does if qmd is unavailable.
 - `SKILL.md` when the scheduling rule becomes part of the main Daydream contract.
 - `scripts/daydream.py` only when the helper check or accepted `no_qmd_policy` values need to change.
@@ -287,6 +308,17 @@ Edit:
 - `templates/seed-card.json` or `templates/constellation.json` when the saved JSON shape changes.
 - `references/constellation-format.md`, the related prompts, and helper validation when constellation data changes.
 
+### I Want To Change Run Discovery Or The CSV Ledger
+
+Edit:
+
+- `scripts/daydream.py` for `runs start`, `runs finish`, `runs list`, run id generation, and CSV updates.
+- `references/outputs.md` for the difference between content files and the run ledger.
+- `references/dream-flow.md` and `references/cron.md` when the run lifecycle changes.
+- `SKILL.md` when the ledger rule becomes part of the main skill contract.
+
+Keep the CSV minimal. It is for finding runs and paths, not for storing dream summaries, qmd errors, seed paths, corpus paths, or semantic notes.
+
 ## Change Map
 
 Use this map when modifying the skill:
@@ -302,5 +334,6 @@ Use this map when modifying the skill:
 | Change constellation nodes, edges, or saved ranking fields | `templates/constellation.json`, `references/constellation-format.md`, `prompts/rank-connections.md`, `scripts/daydream.py` |
 | Change article writing rules | `prompts/write-daydream-article.md`, `templates/article.md`, and `SKILL.md` when the contract changes |
 | Change output names or folder layout | `references/outputs.md`, `scripts/daydream.py`, and this `README.md` |
+| Change run ledger behavior | `scripts/daydream.py`, `references/outputs.md`, `references/dream-flow.md`, `references/cron.md`, and `SKILL.md` |
 
 When a JSON shape changes, update the template, the explanation, the prompt that writes it, and the helper validation that checks it. When helper behavior changes, update `tests/test_daydream.py` with it. That keeps hosts and future edits from drifting apart.

@@ -6,7 +6,7 @@ platforms: [macos, linux]
 
 # Daydream
 
-Daydream turns a local corpus into a bounded dreaming surface. Start from one eligible random seed document, extract a seed card that exposes its concepts, mechanisms, tensions, failure modes, and questions, use qmd to search the user's intended corpus for semantic echoes, rank the valid connections, then write a readable article with its JSON seed card and JSON constellation.
+Daydream turns a local corpus into a bounded dreaming surface. Start from one eligible random seed document, distill its original vision, extract a seed card that exposes its concepts, mechanisms, tensions, failure modes, and questions, use qmd to search the user's intended corpus for semantic echoes, rank the valid connections, then write a readable article with its JSON seed card and JSON constellation.
 
 This is not a summary skill and not a host-only free association exercise. A normal dream is grounded in qmd retrieval from the corpus the user asked to dream over. The host can wander in the writing, but the search trail, connection strengths, and constellation must remain inspectable.
 
@@ -36,7 +36,7 @@ Do not treat a corpus path and a qmd collection as interchangeable. The corpus p
 - The user chooses the corpus, qmd collection, schedule intent, and any explicit permission to widen search scope or accept degraded output.
 - qmd retrieves semantically related corpus material and supplies the retrieval ordering and scores that seed ranking judgment.
 - The bundled helper script fixes repeatable mechanical steps: corpus checks, eligible seed selection, qmd command invocation, JSON validation, and linked output saving.
-- The host reads the seed and retrieved material, writes the seed card, chooses semantic search directions, rejects topic-only overlap, ranks surviving connections, writes the article, and creates the constellation.
+- The host reads the seed and retrieved material, writes the seed card, chooses semantic search directions, rejects topic-only overlap, ranks surviving connections, synthesizes the Dream-Core from accepted connections, writes the article, and creates the constellation.
 
 The helper script must not decide what a seed means, invent connections, or write the article. The host must not pretend it performed normal Daydream when qmd did not provide the search surface.
 
@@ -51,11 +51,11 @@ python3 <skill-dir>/scripts/daydream.py --help
 1. Get the corpus path and qmd collection name. For scheduled dreams, also resolve `no_qmd_policy`.
 2. Start a run ledger row with `runs start` so failures and cancellations remain discoverable.
 3. Check the corpus and qmd readiness, then randomly select one eligible seed document.
-4. Read the seed and create a JSON seed card that matches the template.
-5. Expand the seed card into multiple qmd hybrid searches inside the named collection. Search from concepts, mechanisms, failure modes, tensions, claims, and dream questions rather than one surface topic.
+4. Read the seed, distill its `origin_vision`, and create a JSON seed card that matches the template.
+5. Expand the seed card into multiple qmd hybrid searches inside the named collection. Search from `origin_vision`, concepts, mechanisms, failure modes, tensions, claims, and dream questions rather than one surface topic.
 6. Read retrieved material. Drop directions in `avoid_searching_for` and reject results that stay at topic-only overlap.
 7. Rank every meaningful surviving connection. The constellation keeps the accepted ranked set even when the article uses only a subset.
-8. Write the article, then check that its treatment of the seed still aligns with the seed card `core_claim` and `evidence_spans`.
+8. Synthesize an internal Dream-Core from `origin_vision` and accepted ranked connections, write the article, then check that its treatment of the seed still aligns with `origin_vision`, `core_claim`, and `evidence_spans`.
 9. Validate and save the Markdown article, JSON seed card, and JSON constellation together under one completion-time and keyword folder, using the run id when one was started.
 
 Read `references/dream-flow.md` before executing the full sequence.
@@ -80,6 +80,7 @@ Keep these rules explicit:
 - If the corpus contains `.doc` or `.docx` files, ask the user whether to convert them to Markdown before including them in the dream corpus.
 - Search the user's intended qmd collection. `--corpus` alone is not a qmd result filter.
 - Use multiple semantic searches from the seed card. Do not collapse the whole card into one query or search only a topic label.
+- Search from `origin_vision.search_text` early. It is the seed's distilled original seeing and often finds structural echoes that topic labels miss.
 - qmd order and scores are retrieval evidence. The host reads the material before deciding which connections survive ranking.
 - A host-only fallback is degraded output. Manual runs need explicit user permission; scheduled runs follow `no_qmd_policy` and default to failure.
 - Keep qmd recovery inside qmd first. The helper search command automatically retries the qmd query path on CPU and then a lighter qmd vector search before normal Daydream is considered blocked.
@@ -115,8 +116,13 @@ Keep these rules explicit:
 - Use qmd semantic search for normal Daydream. Do not replace semantic expansion with grep or keyword-only file matching.
 - Keep qmd search inside the user's intended collection unless the user explicitly authorizes cross-collection search.
 - Treat the seed card as the dream's search surface, not as the final article or a decorative summary.
+- Treat `origin_vision` as the seed's distilled original seeing. It is not a title, summary, or psychological diagnosis.
 - Do not drop useful connections only to save tokens.
 - Keep every connection that survives reading and anti-overlap filtering in the ranked constellation. The article may use a subset.
+- Generate Dream-Core only after ranking. It must condense, displace, and dramatize `origin_vision` plus accepted ranked connections, explain at least two strong connections, and never filter out valid connections.
+- Use dream-like symbols as literary method only. Do not turn `origin_vision` or Dream-Core into prophecy, occult reading, or psychological diagnosis of real people.
+- If the article reads like a lecture, report, or source-by-source summary, revise around the Dream-Core instead of explaining the pipeline.
+- End every article with the required `Participating Documents And Concepts` appendix. `save-dream` rejects articles that omit it.
 - Treat `avoid_searching_for` as blocked branch directions, not prompts for later search.
 - Save each completed dream in its own completion-time and keyword folder under `output/`; when a run id was started, include that run id in the final folder name. Keep its article, seed card, and constellation together.
 - Record run status in the fixed CSV ledger, but do not treat that ledger as a fourth content artifact.

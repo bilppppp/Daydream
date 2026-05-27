@@ -4,14 +4,17 @@ Use qmd as the required semantic search path for a normal dream.
 
 Search from the seed card, not from a single topic label. Strong query sources are:
 
-1. `core_concepts[].search_text`
-2. `mechanisms[].search_text`
-3. `failure_modes[].search_text`
-4. `questions_to_dream_on[].question`
-5. `core_claim`
-6. `tensions[].description`
+1. `origin_vision.search_text`
+2. `core_concepts[].search_text`
+3. `mechanisms[].search_text`
+4. `failure_modes[].search_text`
+5. `questions_to_dream_on[].question`
+6. `core_claim`
+7. `tensions[].description`
 
 This is a query fanout, not one whole-card query. Pass one semantic search string to the bundled search command at a time; each call becomes one qmd hybrid query over the corpus. Start from the strongest seed-card search strings, issue multiple qmd searches across the search-bearing fields, then branch from meaningful returned routes when the dream needs more connections.
+
+Use `origin_vision.search_text` early. It carries the seed's distilled original seeing, so it is often the best route for finding distant structural echoes rather than only topical neighbors.
 
 Use `keywords` to understand the seed, not as a keyword-only retrieval substitute.
 

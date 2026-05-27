@@ -37,6 +37,7 @@ RUN_TRIGGERS = {"manual", "cron", "host", "unknown"}
 SEED_CARD_REQUIRED = {
     "card_type",
     "seed_document",
+    "origin_vision",
     "core_summary",
     "core_claim",
     "core_concepts",
@@ -537,6 +538,15 @@ def validate_seed_card(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("card_type must be dream_seed_card")
 
     _require_object_fields(payload["seed_document"], "seed_document", {"title", "path", "source_layer"})
+    _require_object_fields(
+        payload["origin_vision"],
+        "origin_vision",
+        {"vision", "emotional_pressure", "simple_truth", "search_text"},
+    )
+    _require_non_empty_text(payload["origin_vision"], "vision")
+    _require_non_empty_text(payload["origin_vision"], "emotional_pressure")
+    _require_non_empty_text(payload["origin_vision"], "simple_truth")
+    _require_non_empty_text_list(payload["origin_vision"], "search_text")
     _require_non_empty_text(payload, "core_summary")
     _require_non_empty_text(payload, "core_claim")
     _require_non_empty_dict_list(payload, "core_concepts")
@@ -661,6 +671,7 @@ def save_dream_outputs(
     ledger_path: Path | None = None,
 ) -> dict[str, str]:
     article = article_path.read_text(encoding="utf-8")
+    validate_article(article)
     seed_card = validate_seed_card(read_json(seed_card_path))
     constellation = validate_constellation(read_json(constellation_path))
 
@@ -706,6 +717,32 @@ def save_dream_outputs(
             paths=ledger_paths,
         )
     return result
+
+
+def validate_article(article: str) -> str:
+    lines = article.splitlines()
+    heading = "## Participating Documents And Concepts"
+    try:
+        heading_index = next(index for index, line in enumerate(lines) if line.strip() == heading)
+    except StopIteration as exc:
+        raise ValueError("Article must end with a Participating Documents And Concepts appendix") from exc
+
+    if any(line.startswith("## ") for line in lines[heading_index + 1 :]):
+        raise ValueError("Participating Documents And Concepts must be the final article section")
+
+    appendix_lines = [line.strip() for line in lines[heading_index + 1 :] if line.strip()]
+    if len(appendix_lines) < 3:
+        raise ValueError("Participating Documents And Concepts appendix must include a table row")
+    if appendix_lines[0] != "| Document | Concepts Used |":
+        raise ValueError("Participating Documents And Concepts appendix must include the required table header")
+    if not re.fullmatch(r"\|\s*-+\s*\|\s*-+\s*\|", appendix_lines[1]):
+        raise ValueError("Participating Documents And Concepts appendix must include a table separator")
+    data_rows = [line for line in appendix_lines[2:] if line.startswith("|") and not re.fullmatch(r"\|\s*-+\s*\|\s*-+\s*\|", line)]
+    if not data_rows:
+        raise ValueError("Participating Documents And Concepts appendix must include at least one document row")
+    if any(not line.endswith("|") or line.count("|") < 3 for line in data_rows):
+        raise ValueError("Participating Documents And Concepts appendix rows must be markdown table rows")
+    return article
 
 
 def ensure_dir(path: Path) -> Path:

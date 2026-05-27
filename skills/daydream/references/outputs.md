@@ -2,7 +2,9 @@
 
 Save one article and two JSON companions for each completed dream.
 
-The article ends with a compact `Participating Documents And Concepts` appendix that lists the seed and linked documents actually used in the writing plus the concepts each document contributed. Keep broader accepted-but-unused connections in the constellation JSON instead of padding the article appendix.
+The article must end with a compact `Participating Documents And Concepts` appendix that lists the seed and linked documents actually used in the writing plus the concepts each document contributed. Keep broader accepted-but-unused connections in the constellation JSON instead of padding the article appendix.
+
+`save-dream` rejects an article when this appendix is missing, not the final section, missing its table header, or missing document rows.
 
 The completed dream content contract does not change: the content layer is still exactly the article Markdown, seed-card JSON, and constellation JSON. The CSV ledger is a separate run layer.
 
@@ -52,6 +54,8 @@ Before saving:
 python3 <skill-dir>/scripts/daydream.py validate-seed-card <seed-card.json>
 python3 <skill-dir>/scripts/daydream.py validate-constellation <constellation.json>
 ```
+
+The article itself is checked during `save-dream`; there is no separate article validation command.
 
 Hosts should discover completed runs through:
 

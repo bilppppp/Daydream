@@ -25,7 +25,7 @@ If the corpus contains `.doc` or `.docx` files, ask the user whether to convert 
 A normal dream follows this shape:
 
 1. Select one eligible seed document from the user corpus.
-2. Turn that seed into a JSON seed card that exposes claims, concepts, tensions, mechanisms, failure modes, and search questions.
+2. Turn that seed into a JSON seed card that distills its original vision and exposes claims, concepts, tensions, mechanisms, failure modes, and search questions.
 3. Use qmd semantic search over the intended qmd collection to find near echoes, bridges, contrasts, and distant echoes.
 4. Rank every connection that survives reading and topic-overlap filtering.
 5. Write one article and save the JSON record of the seed and the JSON record of the constellation behind the article.
@@ -182,7 +182,7 @@ When a run was started with `runs start`, the final saved folder is `YYYYMMDD-HH
 
 | Output | Purpose |
 | --- | --- |
-| `*.md` | The readable article produced by the dream, ending with a compact list of the documents and concepts that actually participated in the writing. |
+| `*.md` | The readable article produced by the dream. It must end with a compact list of the documents and concepts that actually participated in the writing; `save-dream` rejects the article if that appendix is missing. |
 | `*.seed-card.json` | The saved seed card for that run. It records what the seed meant before the search expanded outward. |
 | `*.constellation.json` | The saved connection map for that run. It records the accepted ranked connections, their strength, the involved documents, and how the article used them. |
 | `daydream-runs.csv` | A fixed run ledger for hosts to find recent runs and the three saved paths. It is not an extra dream content artifact. |
@@ -197,7 +197,7 @@ The two JSON files answer different questions:
 
 | JSON | Question It Answers | Main Contents |
 | --- | --- | --- |
-| Seed card | What did the host understand from the chosen seed before expanding the search? | Seed document identity, summary, claim, concepts, tensions, mechanisms, failure modes, dream questions, search exclusions, and evidence spans. |
+| Seed card | What did the host understand from the chosen seed before expanding the search? | Seed document identity, origin vision, summary, claim, concepts, tensions, mechanisms, failure modes, dream questions, search exclusions, and evidence spans. |
 | Constellation | What network of accepted connections came out of the search and writing process? | Article identity, document and concept nodes, tension and question nodes, edges, ranked connections, strengths, anti-overlap reasons, article usage, and search coverage. |
 
 ## Run It
@@ -290,6 +290,8 @@ Edit:
 - `references/qmd-search.md` for which seed-card fields become semantic search directions.
 - `prompts/expand-with-semantic-search.md` for how the host expands those directions.
 - `templates/seed-card.json`, `references/seed-card-format.md`, `prompts/extract-seed-card.md`, and `scripts/daydream.py` when the seed card fields themselves change.
+
+`origin_vision.search_text` is now a first-class qmd search source. Change it together with the seed-card template and validation when the distillation shape changes.
 
 ### I Want To Change Seed Selection
 

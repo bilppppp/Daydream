@@ -5,6 +5,15 @@
     "path": "/path/to/document.md",
     "source_layer": "freeform source label, such as notes, essays, bookmarks, hermes, openclaw, etc."
   },
+  "origin_vision": {
+    "vision": "One sentence that presents the seed's original way of seeing the world, without explanation.",
+    "emotional_pressure": "The pain, anxiety, shock, longing, or unresolved pressure behind that vision.",
+    "simple_truth": "The simplest judgment left after burning away defense, argument, and system.",
+    "search_text": [
+      "Semantic search text for the seed's original vision.",
+      "Semantic search text for distant structural echoes of that vision."
+    ]
+  },
   "core_summary": "The central meaning of the seed document.",
   "core_claim": "The one sentence the seed most wants to prove or express.",
   "core_concepts": [

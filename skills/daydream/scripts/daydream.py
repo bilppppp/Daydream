@@ -63,6 +63,7 @@ DREAM_STRATEGIES = {
     "tag_bridge",
     "temporal_bridge",
     "same_problem_different_domain",
+    "structural_echo",
 }
 CONNECTION_KINDS = {
     "close_echo",

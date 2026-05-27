@@ -26,3 +26,5 @@ Extract:
 10. short exact evidence spans from the seed.
 
 Write semantic `search_text` for `origin_vision`, concepts, mechanisms, and failure modes. Phrase those texts for meaning-based search, not grep. Do not invent evidence that the seed does not provide.
+
+Use `structural_echo` as `preferred_strategy` when the question is looking for the same underlying structure under a different surface topic. Use `same_problem_different_domain` only when the question is about the same explicit problem appearing in another domain. If you choose `structural_echo`, the shared structure must be nameable.

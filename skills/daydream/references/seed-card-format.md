@@ -15,6 +15,16 @@ Use `../templates/seed-card.json` as the shape. Keep these rules:
 - `avoid_searching_for` records tempting topic-only directions.
 - `evidence_spans` must be short exact spans from the seed.
 
+Allowed `preferred_strategy` values:
+
+- `structural_echo`: use when different surface topics share the same mechanism, tension, failure mode, or power structure.
+- `same_problem_different_domain`: use when different domains are solving or failing at the same explicit problem.
+- `random_collision`: use when a productive accidental collision may open a route.
+- `tag_bridge`: use when tags, labels, or categories can bridge material.
+- `temporal_bridge`: use when time, historical phase, or sequence creates the bridge.
+
+Do not use `structural_echo` as a poetic fallback. The host must be able to name the shared structure.
+
 ## Origin Vision
 
 `origin_vision` is the result of seed distillation. It is not a title, not a summary, and not a diagnosis of the author or any person in the document. It is the original seeing that remains after burning away defense, argument, and system.

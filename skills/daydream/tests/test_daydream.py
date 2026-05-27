@@ -265,6 +265,25 @@ class DaydreamScriptTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "search_text"):
             daydream.validate_seed_card(payload)
 
+    def test_validate_seed_card_accepts_structural_echo_strategy(self) -> None:
+        payload = self.valid_seed_card()
+        payload["questions_to_dream_on"][0]["preferred_strategy"] = "structural_echo"
+
+        self.assertEqual(daydream.validate_seed_card(payload), payload)
+
+    def test_validate_constellation_accepts_structural_echo_question_node(self) -> None:
+        payload = self.valid_constellation()
+        payload["nodes"].append(
+            {
+                "id": "question-structural-echo",
+                "type": "question",
+                "question": "Where does the same structure echo under a different topic?",
+                "preferred_strategy": "structural_echo",
+            }
+        )
+
+        self.assertEqual(daydream.validate_constellation(payload), payload)
+
     def test_runs_start_creates_ledger_header_and_running_row(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             output_root = Path(temp_dir) / "skill-output"

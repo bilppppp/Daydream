@@ -16,6 +16,8 @@ This is a query fanout, not one whole-card query. Pass one semantic search strin
 
 Use `origin_vision.search_text` early. It carries the seed's distilled original seeing, so it is often the best route for finding distant structural echoes rather than only topical neighbors.
 
+When `questions_to_dream_on[].preferred_strategy` is `structural_echo`, search for the same underlying mechanism, tension, failure mode, or power structure under different topics. This is stricter than a pretty analogy. When the strategy is `same_problem_different_domain`, search for another domain facing the same explicit problem.
+
 Use `keywords` to understand the seed, not as a keyword-only retrieval substitute.
 
 Scope qmd explicitly. `--corpus` is not a qmd result filter; it gives Daydream the target directory and command working directory. To keep results inside that target corpus, pass the qmd collection that represents it:

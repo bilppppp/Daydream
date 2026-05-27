@@ -81,6 +81,7 @@ Keep these rules explicit:
 - Search the user's intended qmd collection. `--corpus` alone is not a qmd result filter.
 - Use multiple semantic searches from the seed card. Do not collapse the whole card into one query or search only a topic label.
 - Search from `origin_vision.search_text` early. It is the seed's distilled original seeing and often finds structural echoes that topic labels miss.
+- `structural_echo` is a valid dream question strategy for finding the same mechanism, tension, failure mode, or power structure under different surface topics. It is not a synonym for a pretty analogy.
 - qmd order and scores are retrieval evidence. The host reads the material before deciding which connections survive ranking.
 - A host-only fallback is degraded output. Manual runs need explicit user permission; scheduled runs follow `no_qmd_policy` and default to failure.
 - Keep qmd recovery inside qmd first. The helper search command automatically retries the qmd query path on CPU and then a lighter qmd vector search before normal Daydream is considered blocked.

@@ -36,7 +36,7 @@
       "id": "question-a",
       "type": "question",
       "question": "Question that sent the dream back into the corpus.",
-      "preferred_strategy": "same_problem_different_domain"
+      "preferred_strategy": "structural_echo"
     }
   ],
   "edges": [

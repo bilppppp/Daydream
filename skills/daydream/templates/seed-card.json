@@ -55,7 +55,7 @@
   "questions_to_dream_on": [
     {
       "question": "Question worth sending back into the corpus.",
-      "preferred_strategy": "same_problem_different_domain"
+      "preferred_strategy": "structural_echo"
     }
   ],
   "avoid_searching_for": [

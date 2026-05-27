@@ -2,7 +2,7 @@
 
 Use the seed card to search the corpus repeatedly. Do not collapse the whole seed card into one qmd query.
 
-Start with the strongest `search_text` values. Then branch into:
+Start with `origin_vision.search_text` and the strongest other `search_text` values. Then branch into:
 
 - close echoes,
 - similar mechanisms,
@@ -10,6 +10,8 @@ Start with the strongest `search_text` values. Then branch into:
 - bridge questions,
 - distant echoes,
 - contrasts.
+
+`origin_vision.search_text` is for the seed's distilled original seeing. Use it to look for documents that share the same underlying pressure or structure, even when their topic is far away.
 
 Treat `avoid_searching_for` as blocked branch directions. They are guards against topic-only drift, not prompts for another search.
 

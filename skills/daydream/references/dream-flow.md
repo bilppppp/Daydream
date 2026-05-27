@@ -11,16 +11,17 @@ Use this sequence for a manual dream.
 7. Save a JSON seed card that matches `../templates/seed-card.json`.
 8. Run `python3 <skill-dir>/scripts/daydream.py validate-seed-card <seed-card.json>`.
 9. Read `qmd-search.md` and `../prompts/expand-with-semantic-search.md`.
-10. Search repeatedly within the named qmd collection with semantic text from seed concepts, mechanisms, failure modes, tensions, and dream questions.
+10. Search repeatedly within the named qmd collection with semantic text from `origin_vision`, seed concepts, mechanisms, failure modes, tensions, and dream questions.
 11. Read the retrieved source material needed to understand near echoes, bridges, contrasts, and distant echoes.
 12. Read `ranking.md` and `../prompts/rank-connections.md`.
 13. Rank every connection that survives reading and anti-overlap filtering. Keep it for the constellation even when the article may use only a subset.
 14. Read `constellation-format.md`, `outputs.md`, and `../prompts/write-daydream-article.md`.
-15. Write the Markdown article from the seed and the ranked references it chooses to use, then write a JSON constellation with the full ranked connection set.
-16. Perform a seed alignment check: compare the article's treatment of the seed with `core_claim` and `evidence_spans` from the seed card. Revise before saving if the article twists the seed to chase a distant echo.
-17. Run `python3 <skill-dir>/scripts/daydream.py validate-constellation <constellation.json>`.
-18. Run `python3 <skill-dir>/scripts/daydream.py save-dream --article <article.md> --seed-card <seed-card.json> --constellation <constellation.json> --keywords "<keywords>" --run-id <run_id>`.
-19. Return the article, a short constellation summary, and the saved paths.
+15. Before drafting, internally synthesize a Dream-Core from `origin_vision` and the accepted ranked connections. It must explain at least two strong ranked connections, and it must not discard any valid connection from the constellation.
+16. Write the Markdown article from that Dream-Core, the seed, and the ranked references it chooses to use, then write a JSON constellation with the full ranked connection set.
+17. Perform a seed alignment check: compare the article's treatment of the seed with `origin_vision`, `core_claim`, and `evidence_spans` from the seed card. Revise before saving if the article twists the seed to chase a distant echo.
+18. Run `python3 <skill-dir>/scripts/daydream.py validate-constellation <constellation.json>`.
+19. Run `python3 <skill-dir>/scripts/daydream.py save-dream --article <article.md> --seed-card <seed-card.json> --constellation <constellation.json> --keywords "<keywords>" --run-id <run_id>`.
+20. Return the article, a short constellation summary, and the saved paths.
 
 The article should be complete enough to read on its own. The constellation should explain the concept network behind it.
 

@@ -22,10 +22,20 @@ class DaydreamScriptTests(unittest.TestCase):
         article_path = directory / "article.md"
         seed_card_path = directory / "seed-card.json"
         constellation_path = directory / "constellation.json"
-        article_path.write_text("# Article\n\nBody.\n", encoding="utf-8")
+        article_path.write_text(self.valid_article(), encoding="utf-8")
         seed_card_path.write_text(json.dumps(self.valid_seed_card(), ensure_ascii=False), encoding="utf-8")
         constellation_path.write_text(json.dumps(self.valid_constellation(), ensure_ascii=False), encoding="utf-8")
         return article_path, seed_card_path, constellation_path
+
+    def valid_article(self) -> str:
+        return (
+            "# Article\n\n"
+            "Body.\n\n"
+            "## Participating Documents And Concepts\n\n"
+            "| Document | Concepts Used |\n"
+            "| --- | --- |\n"
+            "| Seed (`/tmp/seed.md`) | Feedback memory |\n"
+        )
 
     def valid_seed_card(self) -> dict[str, object]:
         return {
@@ -34,6 +44,15 @@ class DaydreamScriptTests(unittest.TestCase):
                 "title": "Seed",
                 "path": "/tmp/seed.md",
                 "source_layer": "notes",
+            },
+            "origin_vision": {
+                "vision": "A system keeps its memory until memory becomes the system.",
+                "emotional_pressure": "The useful past hardens into present inertia.",
+                "simple_truth": "What helps a system remember can also keep it trapped.",
+                "search_text": [
+                    "a useful memory becoming a trap for future action",
+                    "the past preserved so strongly that adaptation becomes difficult",
+                ],
             },
             "core_summary": "A compact summary of the seed.",
             "core_claim": "The seed makes one central claim.",
@@ -232,6 +251,20 @@ class DaydreamScriptTests(unittest.TestCase):
         self.assertEqual(results[0]["path"], "qmd://notes/vector.md")
         self.assertEqual(calls[-1][1], "vsearch")
 
+    def test_validate_seed_card_requires_origin_vision(self) -> None:
+        payload = self.valid_seed_card()
+        payload.pop("origin_vision")
+
+        with self.assertRaisesRegex(ValueError, "origin_vision"):
+            daydream.validate_seed_card(payload)
+
+    def test_validate_seed_card_requires_origin_vision_search_text(self) -> None:
+        payload = self.valid_seed_card()
+        payload["origin_vision"]["search_text"] = []
+
+        with self.assertRaisesRegex(ValueError, "search_text"):
+            daydream.validate_seed_card(payload)
+
     def test_runs_start_creates_ledger_header_and_running_row(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             output_root = Path(temp_dir) / "skill-output"
@@ -380,6 +413,22 @@ class DaydreamScriptTests(unittest.TestCase):
         self.assertEqual(rows[0]["dream_dir"], result["dream_dir"])
         self.assertEqual(rows[0]["article_path"], result["article"])
         self.assertTrue(article_exists)
+
+    def test_save_dream_rejects_article_without_participating_documents_appendix(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            article_path, seed_card_path, constellation_path = self.write_valid_dream_inputs(temp_root)
+            article_path.write_text("# Article\n\nBody without the required appendix.\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "Participating Documents And Concepts"):
+                daydream.save_dream_outputs(
+                    output_dir=temp_root / "output",
+                    article_path=article_path,
+                    seed_card_path=seed_card_path,
+                    constellation_path=constellation_path,
+                    keywords="Memory Feedback",
+                    ledger_path=temp_root / "ledger" / "daydream-runs.csv",
+                )
 
     def test_save_dream_with_run_id_uses_started_output_dir_without_override(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
